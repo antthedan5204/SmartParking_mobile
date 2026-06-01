@@ -45,13 +45,13 @@ class AdminBookingsContent extends ConsumerWidget {
                     child: DropdownButtonFormField<String>(
                       value: state.selectedLotName,
                       decoration: InputDecoration(
-                        labelText: 'Bãi đỗ',
+                        labelText: l10n.translate('parkingLot'),
                         prefixIcon: const Icon(Icons.business),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Tất cả bãi')),
+                        DropdownMenuItem(value: null, child: Text(l10n.translate('allLots'))),
                         ...state.availableLotNames.map((name) => DropdownMenuItem(
                           value: name,
                           child: Text(name, overflow: TextOverflow.ellipsis),
@@ -67,15 +67,15 @@ class AdminBookingsContent extends ConsumerWidget {
                     child: DropdownButtonFormField<BookingStatus>(
                       value: state.selectedStatus,
                       decoration: InputDecoration(
-                        labelText: 'Trạng thái',
+                        labelText: l10n.translate('statusLabel'),
                         prefixIcon: const Icon(Icons.info_outline),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Tất cả')),
+                        DropdownMenuItem(value: null, child: Text(l10n.translate('all'))),
                         DropdownMenuItem(value: BookingStatus.confirmed, child: Text(l10n.confirmed)),
-                        DropdownMenuItem(value: BookingStatus.checkedIn, child: const Text('Đã Check-in')),
+                        DropdownMenuItem(value: BookingStatus.checkedIn, child: Text(l10n.translate('statusCheckedIn'))),
                         DropdownMenuItem(value: BookingStatus.completed, child: Text(l10n.completed)),
                         DropdownMenuItem(value: BookingStatus.cancelled, child: Text(l10n.cancelled)),
                       ],
@@ -92,7 +92,7 @@ class AdminBookingsContent extends ConsumerWidget {
                   Expanded(
                     child: TextField(
                       decoration: InputDecoration(
-                        hintText: 'Tìm khách, biển số...',
+                        hintText: l10n.translate('searchGuestOrPlate'),
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -116,7 +116,7 @@ class AdminBookingsContent extends ConsumerWidget {
                       }
                     },
                     icon: const Icon(Icons.calendar_today_rounded, size: 20),
-                    tooltip: 'Lọc theo ngày',
+                    tooltip: l10n.translate('filterByDate'),
                   ),
                 ],
               ),
@@ -126,8 +126,8 @@ class AdminBookingsContent extends ConsumerWidget {
                   children: [
                     Chip(
                       label: Text(
-                        'Từ: ${state.startDate != null ? DateFormat('dd/MM/yyyy').format(state.startDate!) : '...'} - '
-                        'Đến: ${state.endDate != null ? DateFormat('dd/MM/yyyy').format(state.endDate!) : '...'}',
+                        '${l10n.translate('fromPrefix')}${state.startDate != null ? DateFormat('dd/MM/yyyy').format(state.startDate!) : '...'} - '
+                        '${l10n.translate('toPrefix')}${state.endDate != null ? DateFormat('dd/MM/yyyy').format(state.endDate!) : '...'}',
                         style: const TextStyle(fontSize: 12),
                       ),
                       onDeleted: () => ref.read(bookingManagementProvider.notifier).setDateRange(null, null),
@@ -223,7 +223,7 @@ class AdminBookingsContent extends ConsumerWidget {
                                     color: AppColors.danger.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text('Quá hạn', style: TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n.translate('overdue'), style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ),
                               if (isOvertime)
                                 Container(
@@ -233,7 +233,7 @@ class AdminBookingsContent extends ConsumerWidget {
                                     color: AppColors.danger.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text('Đỗ quá giờ', style: TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  child: Text(l10n.translate('parkingOvertime'), style: const TextStyle(color: AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ),
                               _StatusBadge(status: booking.status, l10n: l10n),
                             ],
@@ -241,17 +241,17 @@ class AdminBookingsContent extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(booking.lotName ?? 'Không xác định', style: AppTextStyles.subtitle1),
+                      Text(booking.lotName ?? l10n.translate('unknown'), style: AppTextStyles.subtitle1),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           const Icon(Icons.person_outline, size: 14, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
-                          Text('Khách: ${booking.userId}', style: AppTextStyles.caption),
+                          Text('${l10n.translate('guestPrefix')}${booking.userId}', style: AppTextStyles.caption),
                           const SizedBox(width: 12),
                           const Icon(Icons.directions_car_filled_outlined, size: 14, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
-                          Text('Xe: ${booking.vehicleId}', style: AppTextStyles.caption),
+                          Text('${l10n.translate('vehiclePrefix')}${booking.vehicleId}', style: AppTextStyles.caption),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -278,11 +278,11 @@ class AdminBookingsContent extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Tổng cộng:',
+                  l10n.translate('totalAmountPrefix'),
                   style: AppTextStyles.caption,
                 ),
                 Text(
-                  '${NumberFormat.decimalPattern().format(booking.totalPrice)}đ',
+                  '${NumberFormat.decimalPattern().format(booking.totalPrice)}${l10n.translate('currencyShort')}',
                   style: AppTextStyles.subtitle2.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -314,11 +314,11 @@ class AdminBookingsContent extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          isHistoryView ? 'Phí phạt quá giờ đã thu:' : 'Phí phạt quá giờ:',
+                          isHistoryView ? l10n.translate('collectedPenaltyFee') : l10n.translate('penaltyFee'),
                           style: AppTextStyles.caption.copyWith(color: AppColors.danger, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          NumberFormat.currency(locale: 'vi_VN', symbol: 'VNĐ').format(penaltyFee),
+                          '${NumberFormat.decimalPattern().format(penaltyFee)} ${l10n.translate('currencyShort')}',
                           style: AppTextStyles.subtitle2.copyWith(color: AppColors.danger, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -339,10 +339,10 @@ class AdminBookingsContent extends ConsumerWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: (isConfirmed)
-                          ? () => _handleCheckIn(context, ref, booking)
+                          ? () => _handleCheckIn(context, ref, booking, l10n)
                           : null,
                       icon: const Icon(Icons.login, size: 16),
-                      label: const Text('Check-in'),
+                      label: Text(l10n.translate('checkInBtn')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -358,10 +358,10 @@ class AdminBookingsContent extends ConsumerWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: (isCheckedIn)
-                          ? () => _handleCheckOut(context, ref, booking)
+                          ? () => _handleCheckOut(context, ref, booking, l10n)
                           : null,
                       icon: const Icon(Icons.logout, size: 16),
-                      label: const Text('Check-out'),
+                      label: Text(l10n.translate('checkOutBtn')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         foregroundColor: Colors.white,
@@ -384,9 +384,9 @@ class AdminBookingsContent extends ConsumerWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _handleCheckOut(context, ref, booking),
+                  onPressed: () => _handleCheckOut(context, ref, booking, l10n),
                   icon: const Icon(Icons.logout, size: 16),
-                  label: const Text('Check-out (Quá giờ)'),
+                  label: Text(l10n.translate('checkOutOvertimeBtn')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.danger,
                     foregroundColor: Colors.white,
@@ -402,20 +402,20 @@ class AdminBookingsContent extends ConsumerWidget {
     );
   }
 
-  void _handleCheckIn(BuildContext context, WidgetRef ref, Booking booking) async {
+  void _handleCheckIn(BuildContext context, WidgetRef ref, Booking booking, AppLocalizations l10n) async {
     final success = await ref.read(bookingManagementProvider.notifier).checkInBooking(booking.id);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Check-in thành công')),
+        SnackBar(content: Text(l10n.translate('checkInSuccess'))),
       );
     }
   }
 
-  void _handleCheckOut(BuildContext context, WidgetRef ref, Booking booking) async {
+  void _handleCheckOut(BuildContext context, WidgetRef ref, Booking booking, AppLocalizations l10n) async {
     final success = await ref.read(bookingManagementProvider.notifier).completeBooking(booking.id);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Check-out thành công')),
+        SnackBar(content: Text(l10n.translate('checkOutSuccess'))),
       );
     }
   }
@@ -443,7 +443,7 @@ class _StatusBadge extends StatelessWidget {
     Color color;
     switch (status) {
       case BookingStatus.pending:
-        text = 'Chờ xử lý';
+        text = l10n.translate('statusPending');
         color = AppColors.warning;
         break;
       case BookingStatus.confirmed:
@@ -451,7 +451,7 @@ class _StatusBadge extends StatelessWidget {
         color = AppColors.info;
         break;
       case BookingStatus.checkedIn:
-        text = 'Đã Check-in';
+        text = l10n.translate('statusCheckedIn');
         color = Colors.blue;
         break;
       case BookingStatus.completed:

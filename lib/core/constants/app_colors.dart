@@ -13,6 +13,7 @@ class AppColors {
   static const Color background = Color(0xFFF5F5F7);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFECEFF1);
+  static const Color homeBackground = Color(0xFFF0F4FF);
 
   // Status
   static const Color success = Color(0xFF4CAF50);
@@ -46,6 +47,12 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
+  static const LinearGradient homeHeaderGradient = LinearGradient(
+    colors: [Color(0xFF3F51B5), Color(0xFF5C6BC0), Color(0xFF7986CB)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const LinearGradient adminGradient = LinearGradient(
     colors: [Color(0xFF1A237E), Color(0xFF311B92)],
     begin: Alignment.topLeft,
@@ -56,4 +63,8 @@ class AppColors {
   static const Color occupancyHigh = Color(0xFF4CAF50);    // > 50% free
   static const Color occupancyMedium = Color(0xFFFF9800);   // 20-50% free
   static const Color occupancyLow = Color(0xFFF44336);      // < 20% free
+
+  // Quick Actions
+  static const Color quickActionBookings = Color(0xFF00897B);
+  static const Color quickActionHelp = Color(0xFFFB8C00);
 }

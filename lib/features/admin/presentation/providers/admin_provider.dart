@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../../../parking/presentation/providers/parking_provider.dart';
 import '../../../parking/domain/entities/booking.dart';
+import '../../../parking/domain/entities/parking_lot.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import './booking_management_provider.dart';
 
 // Dashboard state
@@ -44,23 +47,28 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      // 1. Get parking lots
-      final parkingState = ref.read(parkingLotsProvider);
-      var lots = parkingState.lots;
-      if (lots.isEmpty) {
-        await ref.read(parkingLotsProvider.notifier).loadParkingLots();
-        lots = ref.read(parkingLotsProvider).lots;
-      }
+      // 1. Always load parking lots fresh (backend filters by role automatically)
+      await ref.read(parkingLotsProvider.notifier).loadParkingLots();
+      final lots = ref.read(parkingLotsProvider).lots;
+      
+      debugPrint('[Dashboard] total lots from backend: ${lots.length}');
 
       // 2. Get bookings
       final result = await ref.read(getAllBookingsUseCaseProvider)();
-      final List<Booking> allBookings = result.fold(
+      List<Booking> allBookings = result.fold(
         (failure) {
           state = state.copyWith(errorMessage: failure.message);
           return [];
         },
         (b) => b,
       );
+
+      final authState = ref.read(authProvider);
+      final isAdmin = authState.user?.isAdmin ?? false;
+      if (!isAdmin) {
+        final managerLotNames = lots.map((l) => l.name).toSet();
+        allBookings = allBookings.where((b) => managerLotNames.contains(b.lotName)).toList();
+      }
 
       final now = DateTime.now();
       final last7Days = now.subtract(const Duration(days: 7));
@@ -71,6 +79,7 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
       final occupancyPercent = totalSlots > 0 ? ((totalSlots - availableSlots) / totalSlots) * 100 : 0.0;
 
       // Revenue last 7 days (Confirmed & Completed bookings)
+      // Backend already filters bookings by role, so use allBookings directly.
       final recentBookings = allBookings.where((b) => 
         (b.status == BookingStatus.completed || b.status == BookingStatus.confirmed) && 
         b.startTime.isAfter(last7Days)).toList();
@@ -81,7 +90,7 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
       final dailyStats = _calculateDailyStats(allBookings, now);
       
       // 5. Generate real Hourly Occupancy (based on today's bookings)
-      final hourlyOccupancy = _calculateHourlyOccupancy(allBookings, now);
+      final hourlyOccupancy = _calculateHourlyOccupancy(allBookings, now, lots);
 
       final stats = DashboardStats(
         totalSlots: totalSlots,
@@ -142,7 +151,7 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
     }).toList();
   }
 
-  List<HourlyOccupancy> _calculateHourlyOccupancy(List<Booking> bookings, DateTime now) {
+  List<HourlyOccupancy> _calculateHourlyOccupancy(List<Booking> bookings, DateTime now, List<ParkingLot> lots) {
     final List<int> slotsOccupiedPerHour = List.filled(24, 0);
     final todayBookings = bookings.where((b) => 
       b.startTime.year == now.year && b.startTime.month == now.month && b.startTime.day == now.day);
@@ -157,7 +166,7 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
       }
     }
 
-    final totalSlots = ref.read(parkingLotsProvider).lots.fold<int>(0, (sum, lot) => sum + lot.totalSlots);
+    final totalSlots = lots.fold<int>(0, (sum, lot) => sum + lot.totalSlots);
 
     return List.generate(24, (i) {
       final occ = totalSlots > 0 ? (slotsOccupiedPerHour[i] / totalSlots) * 100 : 0.0;

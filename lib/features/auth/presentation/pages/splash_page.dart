@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -9,7 +10,8 @@ class SplashPage extends ConsumerStatefulWidget {
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends ConsumerState<SplashPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
@@ -23,11 +25,17 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
     );
 
     _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+      ),
     );
 
     _controller.forward();
@@ -41,9 +49,6 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    // Chúng ta không cần làm logic điều hướng ở đây vì GoRouter redirect sẽ lo việc đó
-    // dựa trên trạng thái của authProvider.
-    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -74,41 +79,37 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
                         children: [
                           // Logo Container
                           Container(
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: Colors.white.withAlpha(51), // opacity 0.2
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                width: 1.5,
-                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(00).withValues(alpha: 0.2),
-                                  blurRadius: 30,
-                                  spreadRadius: 10,
+                                  color: Colors.black.withAlpha(25),
+                                  blurRadius: 20,
+                                  spreadRadius: 5,
                                 ),
                               ],
                             ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 140,
-                                height: 140,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) => const Icon(
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 120,
+                              height: 120,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Fallback nếu chưa copy file hoặc lỗi
+                                return const Icon(
                                   Icons.local_parking_rounded,
                                   size: 100,
                                   color: Colors.white,
-                                ),
-                              ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 24),
                           // App Name
                           Text(
                             'SMART PARKING',
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -117,8 +118,8 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Giải pháp đỗ xe thông minh',
-                            style: TextStyle(
+                            AppLocalizations.of(context).translate('smartParkingSolution'),
+                            style: GoogleFonts.poppins(
                               fontSize: 16,
                               color: Colors.white.withAlpha(204), // opacity 0.8
                               letterSpacing: 1.2,
@@ -149,8 +150,8 @@ class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProvid
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Đang tải dữ liệu...',
-                      style: TextStyle(
+                      AppLocalizations.of(context).translate('loadingData'),
+                      style: GoogleFonts.poppins(
                         color: Colors.white70,
                         fontSize: 12,
                       ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../providers/vehicle_provider.dart';
 
 class VehicleManagementPage extends ConsumerWidget {
@@ -17,7 +18,7 @@ class VehicleManagementPage extends ConsumerWidget {
       if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(AppLocalizations.of(context).translate(next.errorMessage!)),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -29,7 +30,7 @@ class VehicleManagementPage extends ConsumerWidget {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
-          'Quản lý biển số xe',
+          AppLocalizations.of(context).translate('vehicles'),
           style: AppTextStyles.subtitle1.copyWith(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
@@ -47,7 +48,7 @@ class VehicleManagementPage extends ConsumerWidget {
         backgroundColor: const Color(0xFF6366F1),
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: Text(
-          'Thêm xe mới',
+          AppLocalizations.of(context).translate('addNewVehicle'),
           style: AppTextStyles.buttonSmall.copyWith(color: Colors.white),
         ),
       ),
@@ -73,7 +74,7 @@ class VehicleManagementPage extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Chưa có biển số xe nào',
+            AppLocalizations.of(context).translate('noVehicles'),
             style: AppTextStyles.heading3.copyWith(
               color: const Color(0xFF1E293B),
             ),
@@ -82,7 +83,7 @@ class VehicleManagementPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: Text(
-              'Hãy thêm biển số xe của bạn để có thể thực hiện đặt chỗ bãi đỗ xe.',
+              AppLocalizations.of(context).translate('noVehiclesSub'),
               textAlign: TextAlign.center,
               style: AppTextStyles.body2.copyWith(
                 color: const Color(0xFF64748B),
@@ -131,7 +132,7 @@ class VehicleManagementPage extends ConsumerWidget {
               ),
             ),
             subtitle: Text(
-              'Loại xe: ${vehicle.model}',
+              '${AppLocalizations.of(context).translate('vehicleType')}: ${vehicle.model}',
               style: AppTextStyles.caption.copyWith(
                 color: const Color(0xFF64748B),
               ),
@@ -174,31 +175,31 @@ class VehicleManagementPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Thêm biển số xe mới',
+                  AppLocalizations.of(context).translate('addVehicleTitle'),
                   style: AppTextStyles.heading3.copyWith(
                     color: const Color(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Nhập chính xác biển số để hệ thống nhận diện khi bạn vào bãi.',
+                  AppLocalizations.of(context).translate('addVehicleSub'),
                   style: AppTextStyles.caption.copyWith(color: const Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 24),
                 _buildDialogField(
-                  label: 'Biển số xe',
-                  hint: 'Ví dụ: 30A-123.45',
+                  label: AppLocalizations.of(context).translate('licensePlate'),
+                  hint: AppLocalizations.of(context).translate('licensePlateExample'),
                   controller: plateController,
                   icon: Icons.badge_rounded,
-                  validator: (val) => (val == null || val.isEmpty) ? 'Vui lòng nhập biển số' : null,
+                  validator: (val) => (val == null || val.isEmpty) ? AppLocalizations.of(context).translate('pleaseEnterLicensePlate') : null,
                 ),
                 const SizedBox(height: 16),
                 _buildDialogField(
-                  label: 'Loại xe / Hiệu xe',
-                  hint: 'Ví dụ: Toyota Camry',
+                  label: AppLocalizations.of(context).translate('vehicleModelLabel'),
+                  hint: AppLocalizations.of(context).translate('vehicleModelExample'),
                   controller: modelController,
                   icon: Icons.category_rounded,
-                  validator: (val) => (val == null || val.isEmpty) ? 'Vui lòng nhập loại xe' : null,
+                  validator: (val) => (val == null || val.isEmpty) ? AppLocalizations.of(context).translate('pleaseEnterVehicleModel') : null,
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -223,7 +224,7 @@ class VehicleManagementPage extends ConsumerWidget {
                       elevation: 0,
                     ),
                     child: Text(
-                      'XÁC NHẬN THÊM',
+                      AppLocalizations.of(context).translate('confirmAdd'),
                       style: AppTextStyles.button.copyWith(color: Colors.white),
                     ),
                   ),
@@ -277,19 +278,19 @@ class VehicleManagementPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Xóa biển số xe?', style: AppTextStyles.subtitle1),
-        content: const Text('Bạn có chắc chắn muốn xóa biển số xe này khỏi danh sách quản lý không?'),
+        title: Text(AppLocalizations.of(context).translate('deleteVehicleConfirmTitle'), style: AppTextStyles.subtitle1),
+        content: Text(AppLocalizations.of(context).translate('deleteVehicleConfirmSub')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('HỦY', style: AppTextStyles.label.copyWith(color: const Color(0xFF64748B))),
+            child: Text(AppLocalizations.of(context).translate('cancel').toUpperCase(), style: AppTextStyles.label.copyWith(color: const Color(0xFF64748B))),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(vehicleProvider.notifier).deleteVehicle(id);
             },
-            child: Text('XÓA', style: AppTextStyles.label.copyWith(color: const Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context).translate('delete').toUpperCase(), style: AppTextStyles.label.copyWith(color: const Color(0xFFEF4444), fontWeight: FontWeight.bold)),
           ),
         ],
       ),

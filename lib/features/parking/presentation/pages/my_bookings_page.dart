@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/booking.dart';
 import '../providers/booking_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -32,17 +33,22 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(bookingProvider);
     final now = DateTime.now();
+    final l10n = AppLocalizations.of(context);
 
     // Categorize bookings
     final activeBookings = state.userBookings.where((b) {
       if (b.status == BookingStatus.checkedIn) return true;
-      if (b.status == BookingStatus.confirmed && !now.isAfter(b.endTime.toLocal())) return true;
+      if (b.status == BookingStatus.confirmed &&
+          !now.isAfter(b.endTime.toLocal()))
+        return true;
       return false;
     }).toList();
 
     final historyBookings = state.userBookings.where((b) {
       if (b.status == BookingStatus.checkedIn) return false;
-      if (b.status == BookingStatus.confirmed && !now.isAfter(b.endTime.toLocal())) return false;
+      if (b.status == BookingStatus.confirmed &&
+          !now.isAfter(b.endTime.toLocal()))
+        return false;
       return true;
     }).toList();
 
@@ -51,31 +57,43 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(widget.isManagementMode ? 'Quản lý chỗ đỗ' : 'Đơn đặt của tôi'),
+          title: Text(
+            widget.isManagementMode
+                ? l10n.translate('manageParking')
+                : l10n.translate('myBookings'),
+          ),
           backgroundColor: Colors.white,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
           centerTitle: true,
           automaticallyImplyLeading: Navigator.canPop(context),
-          bottom: const TabBar(
+          bottom: TabBar(
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.primary,
-            tabs: [
-              Tab(text: 'Sắp tới'),
-              Tab(text: 'Lịch sử'),
+            tabs: <Widget>[
+              Tab(text: l10n.translate('upcomingBookings')),
+              Tab(text: l10n.translate('historyBookings')),
             ],
           ),
         ),
-        body: state.isLoading 
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+        body: state.isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
             : TabBarView(
                 children: [
                   activeBookings.isEmpty
-                      ? _buildEmptyState('Bạn chưa có đơn đặt chỗ nào đang hoạt động')
+                      ? _buildEmptyState(
+                          l10n.translate('noActiveBookings'),
+                          l10n,
+                        )
                       : _buildBookingsList(activeBookings, isHistory: false),
                   historyBookings.isEmpty
-                      ? _buildEmptyState('Hiện chưa có lịch sử đơn đặt chỗ')
+                      ? _buildEmptyState(
+                          l10n.translate('noHistoryBookings'),
+                          l10n,
+                        )
                       : _buildBookingsList(historyBookings, isHistory: true),
                 ],
               ),
@@ -83,17 +101,29 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState(String message, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_rounded, size: 64, color: AppColors.textHint.withValues(alpha: 0.5)),
+          Icon(
+            Icons.history_rounded,
+            size: 64,
+            color: AppColors.textHint.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
-          Text(message, style: AppTextStyles.subtitle2, textAlign: TextAlign.center),
+          Text(
+            message,
+            style: AppTextStyles.subtitle2,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
-          Text('Các đơn đặt của bạn sẽ xuất hiện tại đây', 
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+          Text(
+            l10n.translate('bookingsWillAppearHere'),
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -107,13 +137,22 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
         itemCount: bookings.length,
         itemBuilder: (context, index) {
           final booking = bookings[index];
-          return _buildBookingCard(booking, isHistory: isHistory);
+          return _buildBookingCard(
+            booking,
+            isHistory: isHistory,
+            context: context,
+          );
         },
       ),
     );
   }
 
-  Widget _buildBookingCard(Booking booking, {required bool isHistory}) {
+  Widget _buildBookingCard(
+    Booking booking, {
+    required bool isHistory,
+    required BuildContext context,
+  }) {
+    final l10n = AppLocalizations.of(context);
     final formatter = _formatter;
     final isConfirmed = booking.status == BookingStatus.confirmed;
     final isCompleted = booking.status == BookingStatus.completed;
@@ -124,27 +163,33 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
     final localEndTime = booking.endTime.toLocal();
 
     // Logic for management
-    final bool canCancel = isConfirmed && now.isBefore(localStartTime.subtract(const Duration(minutes: 30)));
-    final bool canExtend = isConfirmed && now.isAfter(localStartTime) && now.isBefore(localEndTime);
+    final bool canCancel =
+        isConfirmed &&
+        now.isBefore(localStartTime.subtract(const Duration(minutes: 30)));
+    final bool canExtend =
+        isConfirmed &&
+        now.isAfter(localStartTime) &&
+        now.isBefore(localEndTime);
     final bool isExpired = now.isAfter(localEndTime);
-    final bool isNearStart = isConfirmed && !isExpired && now.isBefore(localStartTime) && !canCancel;
+    final bool isNearStart =
+        isConfirmed && !isExpired && now.isBefore(localStartTime) && !canCancel;
 
     final bool isOvertime = isCheckedIn && now.isAfter(localEndTime);
 
     Color statusColor = AppColors.primary;
-    String statusText = 'Đã đặt';
+    String statusText = l10n.translate('statusBooked');
     if (isOvertime) {
       statusColor = AppColors.danger;
-      statusText = 'Quá giờ - Phát sinh phí';
+      statusText = l10n.translate('statusOvertimeWithFee');
     } else if (isCompleted) {
       statusColor = AppColors.success;
-      statusText = 'Hoàn thành';
+      statusText = l10n.translate('statusCompleted');
     } else if (isCancelled) {
       statusColor = AppColors.danger;
-      statusText = 'Đã hủy';
+      statusText = l10n.translate('statusCancelled');
     } else if (isCheckedIn) {
       statusColor = Colors.blue;
-      statusText = 'Đã Check-in';
+      statusText = l10n.translate('statusCheckedIn');
     }
 
     Widget card = Container(
@@ -171,8 +216,13 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                 children: [
                   Icon(Icons.circle, size: 8, color: statusColor),
                   const SizedBox(width: 8),
-                  Text(statusText, 
-                    style: AppTextStyles.caption.copyWith(color: statusColor, fontWeight: FontWeight.bold)),
+                  Text(
+                    statusText,
+                    style: AppTextStyles.caption.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Spacer(),
                   if (isCompleted || isCheckedIn)
                     IconButton(
@@ -182,17 +232,24 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                       constraints: const BoxConstraints(),
                       visualDensity: VisualDensity.compact,
                       color: statusColor,
-                      tooltip: 'Xem hóa đơn',
+                      tooltip: l10n.translate('viewInvoice'),
                     ),
-                  if (!isHistory && !isCancelled && !isCompleted && !isCheckedIn)
+                  if (!isHistory &&
+                      !isCancelled &&
+                      !isCompleted &&
+                      !isCheckedIn)
                     IconButton(
                       icon: const Icon(Icons.push_pin_rounded, size: 16),
                       onPressed: () {
-                        ref.read(bookingProvider.notifier).togglePinToLockScreen(booking);
+                        ref
+                            .read(bookingProvider.notifier)
+                            .togglePinToLockScreen(booking);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Đã ghim thời gian đếm ngược lên màn hình khóa'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Text(
+                              l10n.translate('pinnedToLockScreenSuccess'),
+                            ),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       },
@@ -200,10 +257,15 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                       constraints: const BoxConstraints(),
                       visualDensity: VisualDensity.compact,
                       color: AppColors.textSecondary,
-                      tooltip: 'Ghim lên màn hình khóa',
+                      tooltip: l10n.translate('pinToLockScreen'),
                     ),
                   const SizedBox(width: 8),
-                  Text('#${booking.id}', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    '#${booking.id}',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -219,17 +281,28 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 20),
+                        child: const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(booking.lotName ?? 'Chưa rõ bãi xe', style: AppTextStyles.subtitle2),
+                            Text(
+                              booking.lotName ?? l10n.translate('unknownLot'),
+                              style: AppTextStyles.subtitle2,
+                            ),
                             if (booking.slotNumber != null)
-                              Text('Vị trí: Ô số ${booking.slotNumber}', 
-                                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                              Text(
+                                '${l10n.translate('slotPrefix')}${booking.slotNumber}',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -239,20 +312,38 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildTimeInfo('Bắt đầu', formatter.format(booking.startTime)),
-                      const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textHint),
-                      _buildTimeInfo('Kết thúc', formatter.format(booking.endTime), crossAxisAlignment: CrossAxisAlignment.end),
+                      _buildTimeInfo(
+                        l10n.translate('timeStart'),
+                        formatter.format(booking.startTime),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: AppColors.textHint,
+                      ),
+                      _buildTimeInfo(
+                        l10n.translate('timeEnd'),
+                        formatter.format(booking.endTime),
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                      ),
                     ],
                   ),
-                  
+
                   if (isOvertime) ...[
                     Builder(
                       builder: (context) {
-                        final overtimeMinutes = now.difference(localEndTime).inMinutes;
-                        final penaltyFee = overtimeMinutes > 10 ? overtimeMinutes * 1000 : 0;
+                        final overtimeMinutes = now
+                            .difference(localEndTime)
+                            .inMinutes;
+                        final penaltyFee = overtimeMinutes > 10
+                            ? overtimeMinutes * 1000
+                            : 0;
                         return Container(
                           margin: const EdgeInsets.only(top: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.danger.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -262,12 +353,19 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 20),
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: AppColors.danger,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Xe đã lưu chuồng quá giờ. Vui lòng lấy xe hoặc gia hạn ngay để tránh phí phụ trội.',
-                                      style: AppTextStyles.caption.copyWith(color: AppColors.danger, fontWeight: FontWeight.w600),
+                                      l10n.translate('overtimeWarning'),
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.danger,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -275,32 +373,40 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                               if (penaltyFee > 0) ...[
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Phí phạt hiện tại: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'VNĐ').format(penaltyFee)}',
-                                  style: AppTextStyles.subtitle2.copyWith(color: AppColors.danger, fontWeight: FontWeight.bold),
+                                  '${l10n.translate('penaltyFeePrefix')}${NumberFormat.decimalPattern().format(penaltyFee)} ${l10n.translate('currencyShort')}',
+                                  style: AppTextStyles.subtitle2.copyWith(
+                                    color: AppColors.danger,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ],
                           ),
                         );
-                      }
+                      },
                     ),
                   ],
-                  
-                  if (isConfirmed && (canCancel || canExtend || isNearStart)) ...[
+
+                  if (isConfirmed &&
+                      (canCancel || canExtend || isNearStart)) ...[
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         if (canCancel)
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _handleCancel(booking),
+                              onPressed: () => _handleCancel(booking, l10n),
                               icon: const Icon(Icons.close_rounded, size: 18),
-                              label: const Text('Hủy'),
+                              label: Text(l10n.translate('cancelBooking')),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.danger,
                                 side: const BorderSide(color: AppColors.danger),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
                             ),
                           )
@@ -311,27 +417,42 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                               decoration: BoxDecoration(
                                 color: AppColors.danger.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: AppColors.danger.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
                               ),
                               child: Text(
-                                'Không thể hủy (Sát giờ)',
+                                l10n.translate('cannotCancelNearStart'),
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.caption.copyWith(color: AppColors.danger, fontWeight: FontWeight.bold),
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.danger,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        if ((canCancel || isNearStart) && canExtend) const SizedBox(width: 8),
+                        if ((canCancel || isNearStart) && canExtend)
+                          const SizedBox(width: 8),
                         if (canExtend)
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () => _handleExtend(booking),
-                              icon: const Icon(Icons.more_time_rounded, size: 18),
-                              label: const Text('Gia hạn'),
+                              icon: const Icon(
+                                Icons.more_time_rounded,
+                                size: 18,
+                              ),
+                              label: Text(l10n.translate('extendBooking')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                                 elevation: 0,
                               ),
                             ),
@@ -344,9 +465,9 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed: () => _showQRCode(booking),
+                        onPressed: () => _showQRCode(booking, l10n),
                         icon: const Icon(Icons.qr_code_rounded, size: 18),
-                        label: const Text('Xem mã QR để check-in'),
+                        label: Text(l10n.translate('viewQRForCheckIn')),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
                         ),
@@ -373,22 +494,35 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
     return card;
   }
 
-  Widget _buildTimeInfo(String label, String value, {CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.start}) {
+  Widget _buildTimeInfo(
+    String label,
+    String value, {
+    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.start,
+  }) {
     return Column(
       crossAxisAlignment: crossAxisAlignment,
       children: [
-        Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, fontSize: 12)),
+        Text(
+          value,
+          style: AppTextStyles.caption.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
       ],
     );
   }
 
-  void _showQRCode(Booking booking) {
+  void _showQRCode(Booking booking, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Mã QR đơn đặt', textAlign: TextAlign.center),
+        title: Text(l10n.translate('qrCodeTitle'), textAlign: TextAlign.center),
         content: SizedBox(
           width: 250,
           child: Column(
@@ -398,8 +532,14 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                 data: 'BOOKING:${booking.id}',
                 version: QrVersions.auto,
                 size: 200,
-                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: AppColors.primary),
-                dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: AppColors.primary),
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: AppColors.primary,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(height: 16),
               Text('#${booking.id}', style: AppTextStyles.subtitle2),
@@ -409,33 +549,41 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ĐÓNG'),
+            child: Text(l10n.translate('close')),
           ),
         ],
       ),
     );
   }
 
-  void _handleCancel(Booking booking) {
+  void _handleCancel(Booking booking, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận hủy'),
-        content: const Text('Bạn có chắc chắn muốn hủy đơn đặt chỗ này không?'),
+        title: Text(l10n.translate('cancelConfirmTitle')),
+        content: Text(l10n.translate('cancelConfirmSub')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('KHÔNG')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.translate('noBtn')),
+          ),
           TextButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
-              final success = await ref.read(bookingProvider.notifier).cancelBooking(booking.id);
+              final success = await ref
+                  .read(bookingProvider.notifier)
+                  .cancelBooking(booking.id);
               if (success && mounted) {
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Đã hủy đơn đặt chỗ thành công')),
+                  SnackBar(content: Text(l10n.translate('cancelSuccess'))),
                 );
               }
             },
-            child: const Text('HỦY ĐƠN', style: TextStyle(color: AppColors.danger)),
+            child: Text(
+              l10n.translate('cancelBookingBtn'),
+              style: const TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -463,10 +611,8 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => PaymentSuccessPage(
-          booking: booking,
-          payment: dummyPayment,
-        ),
+        builder: (context) =>
+            PaymentSuccessPage(booking: booking, payment: dummyPayment),
       ),
     );
   }

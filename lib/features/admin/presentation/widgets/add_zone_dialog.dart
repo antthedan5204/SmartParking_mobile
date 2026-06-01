@@ -117,8 +117,9 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
             }
           });
         } else {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Không tìm thấy vị trí cho địa chỉ này')),
+            SnackBar(content: Text(l10n.translate('locationNotFound'))),
           );
         }
       });
@@ -146,7 +147,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  isEdit ? 'Cập nhật bãi đỗ xe' : 'Thêm bãi đỗ xe',
+                  isEdit ? l10n.translate('updateParkingLot') : l10n.translate('addParkingLot'),
                   style: AppTextStyles.heading3,
                   textAlign: TextAlign.center,
                 ),
@@ -156,7 +157,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'Tên bãi đỗ',
+                    labelText: l10n.translate('lotNameLabel'),
                     prefixIcon: const Icon(Icons.business_outlined),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -172,7 +173,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                       child: TextFormField(
                         controller: _addressController,
                         decoration: InputDecoration(
-                          labelText: 'Địa chỉ',
+                          labelText: l10n.translate('addressLabel'),
                           prefixIcon: const Icon(Icons.location_on_outlined),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -247,14 +248,14 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                       child: TextFormField(
                         controller: _slotsController,
                         decoration: InputDecoration(
-                          labelText: 'Số chỗ',
+                          labelText: l10n.translate('totalSlotsLabel'),
                           prefixIcon: const Icon(Icons.local_parking),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) return l10n.fieldRequired;
-                          if (int.tryParse(value) == null) return 'Số không hợp lệ';
+                          if (int.tryParse(value) == null) return l10n.translate('invalidNumber');
                           return null;
                         },
                       ),
@@ -265,14 +266,14 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                       child: TextFormField(
                         controller: _priceController,
                         decoration: InputDecoration(
-                          labelText: 'Giá (đ/h)',
+                          labelText: l10n.translate('pricePerHourLabel'),
                           prefixIcon: const Icon(Icons.attach_money),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) return l10n.fieldRequired;
-                          if (double.tryParse(value) == null) return 'Số không hợp lệ';
+                          if (double.tryParse(value) == null) return l10n.translate('invalidNumber');
                           return null;
                         },
                       ),
@@ -300,7 +301,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                   DropdownButtonFormField<int>(
                     value: _selectedManagerId,
                     decoration: InputDecoration(
-                      labelText: 'Người quản lý',
+                      labelText: l10n.translate('managerLabel'),
                       prefixIcon: const Icon(Icons.person_pin_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -313,7 +314,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                     onChanged: (value) {
                       setState(() => _selectedManagerId = value);
                     },
-                    validator: (value) => value == null ? 'Vui lòng chọn người quản lý' : null,
+                    validator: (value) => value == null ? l10n.translate('pleaseSelectManager') : null,
                   ),
                 ],
                 
@@ -355,7 +356,7 @@ class _AddZoneDialogState extends ConsumerState<AddZoneDialog> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : Text(isEdit ? 'Cập nhật' : 'Tạo mới'),
+                            : Text(isEdit ? l10n.translate('update') : l10n.translate('createNew')),
                       ),
                     ),
                   ],

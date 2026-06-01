@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/parking_lot.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../providers/parking_provider.dart';
@@ -9,8 +10,10 @@ import 'virtual_payment_page.dart';
 
 class SelectSlotPage extends ConsumerStatefulWidget {
   final ParkingLot lot;
+  final DateTime? startTime;
+  final DateTime? endTime;
 
-  const SelectSlotPage({super.key, required this.lot});
+  const SelectSlotPage({super.key, required this.lot, this.startTime, this.endTime});
 
   @override
   ConsumerState<SelectSlotPage> createState() => _SelectSlotPageState();
@@ -28,11 +31,12 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
   @override
   Widget build(BuildContext context) {
     final slotsAsync = ref.watch(parkingSlotsProvider(widget.lot.id));
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Chọn chỗ đỗ', style: AppTextStyles.subtitle1),
+        title: Text(l10n.translate('selectSlot'), style: AppTextStyles.subtitle1),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -63,11 +67,11 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildLegendItem('Trống', Colors.white, AppColors.primary),
-                _buildLegendItem('Bảo trì', Colors.grey.shade100, Colors.grey.shade300, isMaintenance: true),
-                _buildLegendItem('Đã đỗ', Colors.transparent, Colors.transparent, isCar: true),
+                _buildLegendItem(l10n.translate('availableSlot'), Colors.white, AppColors.primary),
+                _buildLegendItem(l10n.translate('maintenanceSlot'), Colors.grey.shade100, Colors.grey.shade300, isMaintenance: true),
+                _buildLegendItem(l10n.translate('occupiedSlot'), Colors.transparent, Colors.transparent, isCar: true),
                 if (widget.lot.hasEvStation == true)
-                  _buildLegendItem('Trạm sạc', Colors.white, AppColors.success, isEV: true),
+                  _buildLegendItem(l10n.translate('evStation'), Colors.white, AppColors.success, isEV: true),
               ],
             ),
           ),
@@ -83,7 +87,7 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
                       children: [
                         Icon(Icons.info_outline_rounded, size: 48, color: AppColors.textHint.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
-                        Text('Không có vị trí đỗ nào khả dụng', style: AppTextStyles.subtitle2),
+                        Text(l10n.translate('noSlotsAvailable'), style: AppTextStyles.subtitle2),
                       ],
                     ),
                   );
@@ -103,7 +107,7 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Text(
-                    'Lỗi tải dữ liệu: $err',
+                    l10n.translate('dataLoadError').replaceAll('{error}', err.toString()),
                     textAlign: TextAlign.center,
                     style: AppTextStyles.caption.copyWith(color: AppColors.danger),
                   ),
@@ -113,7 +117,7 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
           ),
 
           // Bottom Action
-          _buildBottomAction(context),
+          _buildBottomAction(context, l10n),
         ],
       ),
     );
@@ -349,7 +353,7 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
     );
   }
 
-  Widget _buildBottomAction(BuildContext context) {
+  Widget _buildBottomAction(BuildContext context, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -377,6 +381,8 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
                             amount: widget.lot.pricePerHour,
                             selectedSlotId: selectedSlot.id,
                             selectedSlotNumber: selectedSlot.slotNumber,
+                            startTime: widget.startTime,
+                            endTime: widget.endTime,
                           ),
                         ),
                       );
@@ -388,7 +394,7 @@ class _SelectSlotPageState extends ConsumerState<SelectSlotPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
-              child: const Text('TIẾP TỤC THANH TOÁN', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(l10n.translate('continueToPayment'), style: const TextStyle(fontWeight: FontWeight.bold)),
             );
           }
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../domain/entities/dashboard_stats.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class RevenueChart extends StatelessWidget {
   final List<DailyStats> dailyStats;
@@ -63,7 +64,9 @@ class RevenueChart extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               dailyStats[value.toInt()].day,
-                              style: AppTextStyles.caption.copyWith(fontSize: 10),
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 10,
+                              ),
                             ),
                           );
                         }
@@ -94,11 +97,11 @@ class RevenueChart extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: _getMaxRevenue() > 0 ? _getMaxRevenue() / 4 : 1.0,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: AppColors.borderLight,
-                    strokeWidth: 1,
-                  ),
+                  horizontalInterval: _getMaxRevenue() > 0
+                      ? _getMaxRevenue() / 4
+                      : 1.0,
+                  getDrawingHorizontalLine: (value) =>
+                      FlLine(color: AppColors.borderLight, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 barGroups: dailyStats.asMap().entries.map((entry) {
@@ -128,9 +131,15 @@ class RevenueChart extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _legendItem(AppColors.info, 'Revenue (VNĐ)'),
+              _legendItem(
+                AppColors.info,
+                AppLocalizations.of(context).translate('revenueVnd'),
+              ),
               const SizedBox(width: 16),
-              _legendItem(AppColors.primary, 'Occupancy %'),
+              _legendItem(
+                AppColors.primary,
+                AppLocalizations.of(context).translate('occupancyPercent'),
+              ),
             ],
           ),
         ],
@@ -140,9 +149,7 @@ class RevenueChart extends StatelessWidget {
 
   double _getMaxRevenue() {
     if (dailyStats.isEmpty) return 1;
-    return dailyStats
-        .map((s) => s.revenue)
-        .reduce((a, b) => a > b ? a : b);
+    return dailyStats.map((s) => s.revenue).reduce((a, b) => a > b ? a : b);
   }
 
   Widget _legendItem(Color color, String label) {

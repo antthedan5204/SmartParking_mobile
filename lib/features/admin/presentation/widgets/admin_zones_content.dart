@@ -9,15 +9,34 @@ import '../providers/user_management_provider.dart';
 import 'add_zone_dialog.dart';
 import '../pages/manage_slots_page.dart';
 
-class AdminZonesContent extends ConsumerWidget {
+class AdminZonesContent extends ConsumerStatefulWidget {
   const AdminZonesContent({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminZonesContent> createState() => _AdminZonesContentState();
+}
+
+class _AdminZonesContentState extends ConsumerState<AdminZonesContent> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Always refresh lots when entering the zones tab
+      ref.read(parkingLotsProvider.notifier).loadParkingLots();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final parkingState = ref.watch(parkingLotsProvider);
     final authState = ref.watch(authProvider);
     final isAdmin = authState.user?.isAdmin ?? false;
+
+    // Backend already filters lots by role:
+    // - Admin: returns all lots
+    // - Manager: returns only their assigned lots
+    final lots = parkingState.lots;
 
     return Column(
       children: [
@@ -28,14 +47,14 @@ class AdminZonesContent extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isAdmin ? l10n.zones : 'Cơ sở của tôi',
+                isAdmin ? l10n.zones : l10n.translate('myFacilities'),
                 style: AppTextStyles.heading3,
               ),
               if (isAdmin)
                 ElevatedButton.icon(
                   onPressed: () => _showAddZoneDialog(context, ref),
                   icon: const Icon(Icons.add_location_alt_outlined, size: 18),
-                  label: const Text('Thêm cơ sở'),
+                  label: Text(l10n.translate('addFacility')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -51,13 +70,13 @@ class AdminZonesContent extends ConsumerWidget {
         Expanded(
           child: parkingState.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : parkingState.lots.isEmpty
+              : lots.isEmpty
                   ? Center(child: Text(l10n.noData))
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: parkingState.lots.length,
+                      itemCount: lots.length,
                       itemBuilder: (context, index) {
-                        final lot = parkingState.lots[index];
+                        final lot = lots[index];
                         return _buildZoneItem(context, ref, lot, l10n);
                       },
                     ),
@@ -118,7 +137,7 @@ class AdminZonesContent extends ConsumerWidget {
                       Icon(Icons.sensor_door_outlined, size: 14, color: AppColors.textHint),
                       const SizedBox(width: 4),
                       Text(
-                        '${lot.availableSlots ?? 0}/${lot.totalSlots} chỗ trống',
+                        '${lot.availableSlots ?? 0}/${lot.totalSlots} ${l10n.translate('emptySlots')}',
                         style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -130,7 +149,7 @@ class AdminZonesContent extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${lot.pricePerHour.toStringAsFixed(0)}đ/h',
+                  l10n.translate('pricePerHourFormat').replaceAll('{price}', lot.pricePerHour.toStringAsFixed(0)),
                   style: AppTextStyles.subtitle2.copyWith(color: AppColors.primary),
                 ),
                 const SizedBox(height: 8),
@@ -168,9 +187,10 @@ class AdminZonesContent extends ConsumerWidget {
 
     if (result == true) {
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(lot != null ? 'Cập nhật thành công' : 'Tạo cơ sở thành công'),
+            content: Text(lot != null ? l10n.translate('updateSuccess') : l10n.translate('createFacilitySuccess')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -185,8 +205,8 @@ class AdminZonesContent extends ConsumerWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc chắn muốn xóa bãi đỗ "${lot.name}" không?'),
+        title: Text(l10n.translate('confirmDelete')),
+        content: Text(l10n.translate('confirmDeleteLot').replaceAll('{lotName}', lot.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -195,7 +215,7 @@ class AdminZonesContent extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Xóa'),
+            child: Text(l10n.translate('delete')),
           ),
         ],
       ),
@@ -207,8 +227,8 @@ class AdminZonesContent extends ConsumerWidget {
       if (context.mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã xóa bãi đỗ xe'),
+            SnackBar(
+              content: Text(l10n.translate('lotDeleted')),
               backgroundColor: AppColors.success,
             ),
           );
@@ -217,7 +237,7 @@ class AdminZonesContent extends ConsumerWidget {
           final error = ref.read(userManagementProvider).errorMessage;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(error ?? 'Lỗi khi xóa bãi đỗ xe'),
+              content: Text(error ?? l10n.translate('deleteLotError')),
               backgroundColor: AppColors.danger,
             ),
           );

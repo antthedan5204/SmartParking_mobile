@@ -17,7 +17,7 @@ class NetworkFailure extends Failure {
 }
 
 class CacheFailure extends Failure {
-  const CacheFailure([super.message = 'Lỗi bộ nhớ đệm']);
+  const CacheFailure([super.message = 'cacheError']);
 }
 
 class AuthFailure extends Failure {
@@ -25,5 +25,5 @@ class AuthFailure extends Failure {
 }
 
 class ValidationFailure extends Failure {
-  const ValidationFailure([super.message = 'Dữ liệu không hợp lệ']);
+  const ValidationFailure([super.message = 'validationError']);
 }

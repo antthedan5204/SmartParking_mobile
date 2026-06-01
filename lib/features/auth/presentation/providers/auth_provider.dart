@@ -87,6 +87,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           state = const AuthState(status: AuthStatus.unauthenticated);
         },
         (user) {
+          AuthInterceptor.clearTokenCache();
           state = AuthState(status: AuthStatus.authenticated, user: user);
         },
       );
@@ -112,6 +113,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       },
       (user) {
+        AuthInterceptor.clearTokenCache();
         state = AuthState(status: AuthStatus.authenticated, user: user);
         return true;
       },
@@ -150,6 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return false;
         },
         (user) {
+          AuthInterceptor.clearTokenCache();
           state = AuthState(status: AuthStatus.authenticated, user: user);
           return true;
         },
@@ -277,8 +280,60 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  Future<bool> sendVerificationEmail(String email) async {
+    final previousState = state;
+    state = state.copyWith(status: AuthStatus.loading);
+
+    final result = await repository.sendVerificationEmail(email);
+
+    return result.fold(
+      (failure) {
+        state = previousState.copyWith(
+          status: AuthStatus.error,
+          errorMessage: failure.message,
+        );
+        return false;
+      },
+      (_) {
+        state = previousState.copyWith(
+          status: previousState.status == AuthStatus.loading
+              ? AuthStatus.unauthenticated
+              : previousState.status,
+        );
+        return true;
+      },
+    );
+  }
+
+  Future<bool> verifyEmail({
+    required String email,
+    required String token,
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+
+    final result = await repository.verifyEmail(
+      email: email,
+      token: token,
+    );
+
+    return result.fold(
+      (failure) {
+        state = AuthState(
+          status: AuthStatus.error,
+          errorMessage: failure.message,
+        );
+        return false;
+      },
+      (user) {
+        state = AuthState(status: AuthStatus.authenticated, user: user);
+        return true;
+      },
+    );
+  }
+
   Future<void> logout() async {
     await repository.logout();
+    AuthInterceptor.clearTokenCache();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 

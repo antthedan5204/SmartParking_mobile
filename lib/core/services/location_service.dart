@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:flutter/foundation.dart';
+
 class LocationService {
   /// Request location permissions and check if service is enabled
   static Future<bool> handlePermission() async {
@@ -61,7 +63,7 @@ class LocationService {
         }
       }
     } catch (e) {
-      print('Geocoding error: $e');
+      debugPrint('Geocoding error: $e');
     }
     return null;
   }
@@ -77,7 +79,7 @@ class LocationService {
         return data['display_name'];
       }
     } catch (e) {
-      print('Reverse Geocoding error: $e');
+      debugPrint('Reverse Geocoding error: $e');
     }
     return null;
   }

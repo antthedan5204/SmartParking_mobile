@@ -6,8 +6,10 @@ import '../../domain/repositories/parking_repository.dart';
 import 'parking_provider.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/realtime_notification_service.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../pages/notifications_page.dart';
 import 'dart:async';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class BookingState {
   final bool isLoading;
@@ -45,6 +47,9 @@ class BookingNotifier extends StateNotifier<BookingState> {
   final ParkingRepository repository;
   final Ref ref;
   StreamSubscription? _notificationSub;
+  final Set<String> _shownNotifications = {};
+
+
 
   BookingNotifier(this.repository, this.ref) : super(const BookingState()) {
     // Listen for real-time updates to sync booking state
@@ -61,6 +66,18 @@ class BookingNotifier extends StateNotifier<BookingState> {
   void dispose() {
     _notificationSub?.cancel();
     super.dispose();
+  }
+
+  void clear() {
+    _shownNotifications.clear();
+    state = const BookingState();
+  }
+
+
+
+  String _t(String vi, String en) {
+    final langCode = ref.read(localeProvider).languageCode;
+    return langCode == 'en' ? en : vi;
   }
 
   Future<void> loadUserBookings() async {
@@ -242,10 +259,13 @@ class BookingNotifier extends StateNotifier<BookingState> {
 
       if (shouldShow) {
         final checkoutStr = '${localEnd.hour.toString().padLeft(2, '0')}:${localEnd.minute.toString().padLeft(2, '0')}';
+        final isCheckedIn = booking.status == BookingStatus.checkedIn;
         await NotificationService().showOngoingBookingTimer(
           id: booking.id + 20000,
-          title: booking.status == BookingStatus.checkedIn ? 'Đang đỗ xe: ${booking.slotNumber ?? ""}' : 'Sắp đến giờ đỗ: ${booking.slotNumber ?? ""}',
-          body: 'Tại ${booking.lotName ?? "bãi đỗ"}. Trả chỗ lúc: $checkoutStr',
+          title: isCheckedIn 
+              ? _t('Đang đỗ xe: ${booking.slotNumber ?? ""}', 'Currently parked: ${booking.slotNumber ?? ""}') 
+              : _t('Sắp đến giờ đỗ: ${booking.slotNumber ?? ""}', 'Upcoming parking: ${booking.slotNumber ?? ""}'),
+          body: _t('Tại ${booking.lotName ?? "bãi đỗ"}. Trả chỗ lúc: $checkoutStr', 'At ${booking.lotName ?? "parking lot"}. Checkout: $checkoutStr'),
           endTime: localEnd,
         );
       } else {
@@ -262,8 +282,8 @@ class BookingNotifier extends StateNotifier<BookingState> {
      
      await NotificationService().showOngoingBookingTimer(
       id: booking.id + 20000,
-      title: 'Theo dõi đơn: #${booking.id}',
-      body: 'Tại ${booking.lotName ?? ""}. Trả chỗ lúc: $checkoutStr',
+      title: _t('Theo dõi đơn: #${booking.id}', 'Track booking: #${booking.id}'),
+      body: _t('Tại ${booking.lotName ?? ""}. Trả chỗ lúc: $checkoutStr', 'At ${booking.lotName ?? ""}. Checkout: $checkoutStr'),
       endTime: localEnd,
     );
   }
@@ -280,34 +300,44 @@ class BookingNotifier extends StateNotifier<BookingState> {
     // 1. Start Reminder
     if (!onlyEnd && booking.status == BookingStatus.confirmed) {
       final startReminderTime = localStart.subtract(const Duration(minutes: 10));
+      final title = _t('Sắp đến giờ đỗ xe!', 'Upcoming parking time!');
+      final bodyImm = _t('Đơn đặt chỗ của bạn (${booking.lotName ?? ""}) sẽ bắt đầu trong ít phút nữa!', 'Your booking (${booking.lotName ?? ""}) will start in a few minutes!');
+      final bodyTimer = _t('Đơn đặt chỗ tại ${booking.lotName ?? "bãi đỗ"} sẽ bắt đầu sau 10 phút nữa.', 'Your booking at ${booking.lotName ?? "parking lot"} will start in 10 minutes.');
+
       if (now.isAfter(startReminderTime) && now.isBefore(localStart)) {
-        await NotificationService().showNotification(
-          id: booking.id,
-          title: 'Sắp đến giờ đỗ xe!',
-          body: 'Đơn đặt chỗ của bạn (${booking.lotName ?? ""}) sẽ bắt đầu trong ít phút nữa!',
-        );
-        ref.read(notificationsProvider.notifier).addNotification(
-          AppNotification(
-            id: booking.id.toString() + '_start_imm',
-            title: 'Sắp đến giờ đỗ xe!',
-            message: 'Đơn đặt chỗ của bạn (${booking.lotName ?? ""}) sẽ bắt đầu trong ít phút nữa!',
-            timestamp: DateTime.now(),
-            type: NotificationType.reminder,
-          )
-        );
+        final notifId = '${booking.id}_start_imm';
+        if (!_shownNotifications.contains(notifId)) {
+          _shownNotifications.add(notifId);
+          await NotificationService().showNotification(
+            id: booking.id,
+            title: title,
+            body: bodyImm,
+          );
+          ref.read(notificationsProvider.notifier).addNotification(
+            AppNotification(
+              id: notifId,
+              title: title,
+              message: bodyImm,
+              timestamp: DateTime.now(),
+              type: NotificationType.reminder,
+            )
+          );
+        }
       } else if (startReminderTime.isAfter(now)) {
+
+
         await NotificationService().scheduleBookingReminder(
           id: booking.id,
-          title: 'Sắp đến giờ đỗ xe!',
-          body: 'Đơn đặt chỗ tại ${booking.lotName ?? "bãi đỗ"} sẽ bắt đầu sau 10 phút nữa.',
+          title: title,
+          body: bodyTimer,
           scheduledDate: startReminderTime,
         );
         Timer(startReminderTime.difference(now), () {
           ref.read(notificationsProvider.notifier).addNotification(
             AppNotification(
               id: booking.id.toString() + '_start_timer',
-              title: 'Sắp đến giờ đỗ xe!',
-              message: 'Đơn đặt chỗ tại ${booking.lotName ?? "bãi đỗ"} sẽ bắt đầu sau 10 phút nữa.',
+              title: title,
+              message: bodyTimer,
               timestamp: DateTime.now(),
               type: NotificationType.reminder,
             )
@@ -319,29 +349,37 @@ class BookingNotifier extends StateNotifier<BookingState> {
     // 2. End Reminder
     if (booking.status == BookingStatus.confirmed || booking.status == BookingStatus.checkedIn) {
       final endReminderTime = localEnd.subtract(const Duration(minutes: 10));
-      final title = isExtension ? 'Hết hạn gửi xe (Đã gia hạn)!' : 'Sắp hết hạn gửi xe!';
-      final bodyPrefix = isExtension ? 'Thời gian mới' : 'Đơn đặt tại ${booking.lotName ?? "bãi đỗ"} sẽ hết hạn';
+      final title = isExtension ? _t('Hết hạn gửi xe (Đã gia hạn)!', 'Parking expired (Extended)!') : _t('Sắp hết hạn gửi xe!', 'Parking about to expire!');
+      final bodyPrefix = isExtension ? _t('Thời gian mới', 'New time') : _t('Đơn đặt tại ${booking.lotName ?? "bãi đỗ"} sẽ hết hạn', 'Booking at ${booking.lotName ?? "parking lot"} will expire');
+      final bodyImm = _t('$bodyPrefix trong ít phút nữa. Vui lòng lưu ý!', '$bodyPrefix in a few minutes. Please note!');
+      final bodyTimer = _t('$bodyPrefix sau 10 phút nữa. Vui lòng lưu ý!', '$bodyPrefix in 10 minutes. Please note!');
       
       if (now.isAfter(endReminderTime) && now.isBefore(localEnd)) {
-        await NotificationService().showNotification(
-          id: booking.id + 10000,
-          title: title,
-          body: '$bodyPrefix trong ít phút nữa. Vui lòng lưu ý!',
-        );
-        ref.read(notificationsProvider.notifier).addNotification(
-          AppNotification(
-            id: booking.id.toString() + '_end_imm',
+        final notifId = '${booking.id}_end_imm';
+        if (!_shownNotifications.contains(notifId)) {
+          _shownNotifications.add(notifId);
+          await NotificationService().showNotification(
+            id: booking.id + 10000,
             title: title,
-            message: '$bodyPrefix trong ít phút nữa. Vui lòng lưu ý!',
-            timestamp: DateTime.now(),
-            type: NotificationType.reminder,
-          )
-        );
+            body: bodyImm,
+          );
+          ref.read(notificationsProvider.notifier).addNotification(
+            AppNotification(
+              id: notifId,
+              title: title,
+              message: bodyImm,
+              timestamp: DateTime.now(),
+              type: NotificationType.reminder,
+            )
+          );
+        }
       } else if (endReminderTime.isAfter(now)) {
+      
+
         await NotificationService().scheduleBookingReminder(
           id: booking.id + 10000,
           title: title,
-          body: '$bodyPrefix sau 10 phút nữa. Vui lòng lưu ý!',
+          body: bodyTimer,
           scheduledDate: endReminderTime,
         );
         Timer(endReminderTime.difference(now), () {
@@ -349,7 +387,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
             AppNotification(
               id: booking.id.toString() + '_end_timer',
               title: title,
-              message: '$bodyPrefix sau 10 phút nữa. Vui lòng lưu ý!',
+              message: bodyTimer,
               timestamp: DateTime.now(),
               type: NotificationType.reminder,
             )
@@ -361,5 +399,13 @@ class BookingNotifier extends StateNotifier<BookingState> {
 }
 
 final bookingProvider = StateNotifierProvider<BookingNotifier, BookingState>((ref) {
-  return BookingNotifier(ref.read(parkingRepositoryProvider), ref);
+  final notifier = BookingNotifier(ref.read(parkingRepositoryProvider), ref);
+  
+  ref.listen(authProvider, (previous, next) {
+    if (next.status == AuthStatus.unauthenticated) {
+      notifier.clear();
+    }
+  });
+  
+  return notifier;
 });

@@ -78,9 +78,7 @@ class ParkingLotsNotifier extends StateNotifier<ParkingLotsState> {
   Timer? _debounce;
 
   ParkingLotsNotifier(this.getParkingLotsUseCase) 
-      : super(const ParkingLotsState()) {
-    Future.microtask(() => loadParkingLots());
-  }
+      : super(const ParkingLotsState());
 
   Future<void> loadParkingLots() async {
     state = state.copyWith(isLoading: true, errorMessage: null);

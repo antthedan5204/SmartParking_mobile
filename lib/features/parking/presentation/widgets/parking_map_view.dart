@@ -169,7 +169,7 @@ class _ParkingMapViewState extends ConsumerState<ParkingMapView> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                           ),
                           const SizedBox(width: 12),
-                          Text('Đang tải dữ liệu...', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500)),
+                          Text(l10n.loading, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../parking/domain/entities/parking_lot.dart';
 import '../../../parking/domain/entities/parking_slot.dart';
 import '../../../parking/presentation/providers/parking_provider.dart';
 import '../providers/manage_slots_provider.dart';
 import '../../../admin/presentation/providers/booking_management_provider.dart';
 import '../../../parking/domain/entities/booking.dart';
+import '../../../parking/presentation/widgets/booking_success_sheet.dart';
+import 'manager_booking_page.dart';
 
 class ManageSlotsPage extends ConsumerStatefulWidget {
   final ParkingLot lot;
@@ -30,11 +33,12 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
   Widget build(BuildContext context) {
     final slotsAsync = ref.watch(parkingSlotsProvider(widget.lot.id));
     final manageState = ref.watch(manageSlotsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Quản lý ô đỗ', style: AppTextStyles.subtitle1),
+        title: Text(l10n.translate('manageSlots'), style: AppTextStyles.subtitle1),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -73,11 +77,11 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildLegendItem('Trống', Colors.white, AppColors.primary),
-                    _buildLegendItem('Bảo trì', Colors.amber.withValues(alpha: 0.15), Colors.amber, isMaintenance: true),
-                    _buildLegendItem('Đang đỗ', Colors.transparent, Colors.transparent, isCar: true),
+                    _buildLegendItem(l10n.translate('availableSlot'), Colors.white, AppColors.primary),
+                    _buildLegendItem(l10n.translate('maintenanceSlot'), Colors.amber.withValues(alpha: 0.15), Colors.amber, isMaintenance: true),
+                    _buildLegendItem(l10n.translate('occupiedSlot'), Colors.transparent, Colors.transparent, isCar: true),
                     if (widget.lot.hasEvStation == true)
-                      _buildLegendItem('Trạm sạc', Colors.white, AppColors.success, isEV: true),
+                      _buildLegendItem(l10n.translate('evStation'), Colors.white, AppColors.success, isEV: true),
                   ],
                 ),
               ),
@@ -93,7 +97,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                           children: [
                             Icon(Icons.info_outline_rounded, size: 48, color: AppColors.textHint.withValues(alpha: 0.5)),
                             const SizedBox(height: 16),
-                            Text('Không có vị trí đỗ nào khả dụng', style: AppTextStyles.subtitle2),
+                            Text(l10n.translate('noSlotsAvailable'), style: AppTextStyles.subtitle2),
                           ],
                         ),
                       );
@@ -111,7 +115,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        'Lỗi tải dữ liệu: $err',
+                        l10n.translate('dataLoadError').replaceAll('{error}', err.toString()),
                         textAlign: TextAlign.center,
                         style: AppTextStyles.caption.copyWith(color: AppColors.danger),
                       ),
@@ -302,7 +306,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
           }
 
           return GestureDetector(
-            onTap: () => _showSlotDetailsBottomSheet(context, slot),
+            onTap: () => _showSlotDetailsBottomSheet(context, slot, AppLocalizations.of(context)),
             child: Container(
               decoration: BoxDecoration(
                 color: bgColor,
@@ -347,116 +351,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
     );
   }
 
-  void _showBookOnBehalfDialog(BuildContext context, ParkingSlot slot) {
-    final plateController = TextEditingController();
-    int selectedHours = 1;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
-                children: [
-                  const Icon(Icons.assignment_ind_rounded, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text('Đặt chỗ hộ ô ${slot.slotNumber}', style: AppTextStyles.subtitle1),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nhập thông tin chi tiết xe và thời gian của khách gửi:',
-                    style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: plateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Biển số xe',
-                      hintText: 'VD: 29A-12345',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.credit_card_rounded),
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Thời gian gửi dự kiến:', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [1, 2, 4, 8].map((hours) {
-                      final isSelected = selectedHours == hours;
-                      return ChoiceChip(
-                        label: Text('$hours giờ'),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => selectedHours = hours);
-                          }
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final plate = plateController.text.trim();
-                    if (plate.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Vui lòng nhập biển số xe')),
-                      );
-                      return;
-                    }
-                    Navigator.pop(context); // Close dialog
-
-                    final success = await ref
-                        .read(manageSlotsProvider.notifier)
-                        .bookOnBehalf(
-                          slotId: slot.id,
-                          lotId: slot.lotId,
-                          plateNumber: plate,
-                          durationHours: selectedHours,
-                        );
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success 
-                              ? 'Đã đặt chỗ hộ thành công cho xe $plate!' 
-                              : 'Lỗi khi đặt chỗ hộ khách hàng'),
-                          backgroundColor: success ? AppColors.success : AppColors.danger,
-                        ),
-                      );
-                      ref.read(bookingManagementProvider.notifier).loadBookings();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('XÁC NHẬN'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showSlotDetailsBottomSheet(BuildContext context, ParkingSlot slot) {
+  void _showSlotDetailsBottomSheet(BuildContext context, ParkingSlot slot, AppLocalizations l10n) {
     final isOccupied = slot.status.toLowerCase() == 'occupied';
     final isMaintenance = slot.status.toLowerCase() == 'maintenance';
     
@@ -520,10 +415,10 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                           ),
                           child: Text(
                             isOccupied
-                                ? 'ĐANG ĐỖ XE'
+                                ? l10n.translate('statusOccupied')
                                 : isMaintenance
-                                    ? 'ĐANG BẢO TRÌ'
-                                    : 'ĐANG TRỐNG',
+                                    ? l10n.translate('statusMaintenance')
+                                    : l10n.translate('statusAvailable'),
                             style: AppTextStyles.caption.copyWith(
                               color: isOccupied 
                                   ? Colors.red
@@ -547,14 +442,14 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                 // Attributes List
                 _buildInfoRow(
                   icon: Icons.flash_on_rounded, 
-                  label: 'Trạm sạc EV:', 
-                  value: slot.isEvCharging ? 'Có tích hợp' : 'Không có',
+                  label: l10n.translate('evStationLabel'), 
+                  value: slot.isEvCharging ? l10n.translate('integrated') : l10n.translate('none'),
                   valueColor: slot.isEvCharging ? AppColors.success : AppColors.textSecondary,
                 ),
                 const SizedBox(height: 10),
                 _buildInfoRow(
                   icon: Icons.info_outline_rounded, 
-                  label: 'Mã vị trí:', 
+                  label: l10n.translate('slotIdLabel'), 
                   value: '#${slot.id}',
                 ),
                 
@@ -563,14 +458,14 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                   const SizedBox(height: 10),
                   _buildInfoRow(
                     icon: Icons.credit_card_rounded, 
-                    label: 'Biển số xe:', 
-                    value: activeBooking.vehiclePlateNumber ?? 'Không rõ',
+                    label: l10n.translate('licensePlateLabel'), 
+                    value: activeBooking.vehiclePlateNumber ?? l10n.translate('unknown'),
                     valueColor: AppColors.primary,
                   ),
                   const SizedBox(height: 10),
                   _buildInfoRow(
                     icon: Icons.history_rounded, 
-                    label: 'Đơn đặt chỗ:', 
+                    label: l10n.translate('bookingIdLabel'), 
                     value: '#${activeBooking.id}',
                   ),
                 ],
@@ -579,10 +474,10 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                 // Description message
                 Text(
                   isOccupied
-                      ? 'Ô đỗ hiện đang được đỗ xe vật lý bởi khách hàng. Manager có thể chủ động thanh toán và check-out xe hộ khách tại đây.'
+                      ? l10n.translate('occupiedSlotDesc')
                       : isMaintenance
-                          ? 'Ô đỗ hiện đang ở trạng thái bảo trì. Khách hàng sẽ không thể nhìn thấy hoặc đặt chỗ cho vị trí này.'
-                          : 'Ô đỗ hiện đang trống và sẵn sàng phục vụ khách gửi xe.',
+                          ? l10n.translate('maintenanceSlotDesc')
+                          : l10n.translate('availableSlotDesc'),
                   style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 28),
@@ -600,15 +495,15 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(success 
-                                ? 'Đã mở khóa hoạt động cho ô ${slot.slotNumber}' 
-                                : 'Lỗi cập nhật trạng thái'),
+                                ? l10n.translate('unlockSlotSuccess').replaceAll('{slotNumber}', slot.slotNumber) 
+                                : l10n.translate('updateStatusFailed')),
                             backgroundColor: success ? AppColors.success : AppColors.danger,
                           ),
                         );
                       }
                     },
                     icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
-                    label: const Text('MỞ KHÓA HOẠT ĐỘNG'),
+                    label: Text(l10n.translate('unlockSlotBtn')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -624,17 +519,17 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Xác nhận Check-out xe?'),
-                            content: Text('Xác nhận hoàn thành check-out và giải phóng ô đỗ ${slot.slotNumber} cho xe ${activeBooking?.vehiclePlateNumber ?? ""}?'),
+                            title: Text(l10n.translate('confirmCheckoutTitle')),
+                            content: Text(l10n.translate('confirmCheckoutSub').replaceAll('{slotNumber}', slot.slotNumber).replaceAll('{plate}', activeBooking?.vehiclePlateNumber ?? "")),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Hủy'),
+                                child: Text(l10n.translate('cancel')),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                                child: const Text('Xác nhận'),
+                                child: Text(l10n.translate('confirm')),
                               ),
                             ],
                           ),
@@ -644,20 +539,20 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                           Navigator.pop(context); // Close bottom sheet
                           final success = await ref
                               .read(manageSlotsProvider.notifier)
-                              .checkoutVehicle(activeBooking!.id, slot.lotId);
+                              .checkoutVehicle(activeBooking!.id, slot.lotId, slot.id);
                           
                           if (success && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Check-out xe thành công!'),
+                              SnackBar(
+                                content: Text(l10n.translate('checkoutSuccess')),
                                 backgroundColor: AppColors.success,
                               ),
                             );
                             ref.read(bookingManagementProvider.notifier).loadBookings();
                           } else if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Lỗi hoàn thành check-out'),
+                              SnackBar(
+                                content: Text(l10n.translate('checkoutFailed')),
                                 backgroundColor: AppColors.danger,
                               ),
                             );
@@ -665,7 +560,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         }
                       },
                       icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                      label: const Text('CHECK-OUT XE HỘ KHÁCH'),
+                      label: Text(l10n.translate('checkoutForGuestBtn')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
@@ -680,17 +575,17 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Giải phóng ô đỗ?'),
-                            content: Text('Xác nhận đặt lại trạng thái ô ${slot.slotNumber} thành Trống? Điều này giúp xử lý các ô đỗ bị kẹt.'),
+                            title: Text(l10n.translate('freeSlotTitle')),
+                            content: Text(l10n.translate('freeSlotSub').replaceAll('{slotNumber}', slot.slotNumber)),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Hủy'),
+                                child: Text(l10n.translate('cancel')),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                                child: const Text('Xác nhận'),
+                                child: Text(l10n.translate('confirm')),
                               ),
                             ],
                           ),
@@ -706,8 +601,8 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(success 
-                                    ? 'Đã giải phóng ô ${slot.slotNumber} thành công' 
-                                    : 'Lỗi cập nhật trạng thái'),
+                                    ? l10n.translate('freeSlotSuccess').replaceAll('{slotNumber}', slot.slotNumber) 
+                                    : l10n.translate('updateStatusFailed')),
                                 backgroundColor: success ? AppColors.success : AppColors.danger,
                               ),
                             );
@@ -715,7 +610,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         }
                       },
                       icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                      label: const Text('GIẢI PHÓNG Ô ĐỖ THỦ CÔNG'),
+                      label: Text(l10n.translate('manualFreeSlotBtn')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -732,17 +627,17 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Giải phóng ô đỗ?'),
-                            content: Text('Xác nhận đặt lại trạng thái ô ${slot.slotNumber} thành Trống? Điều này giúp xử lý các ô đỗ bị kẹt.'),
+                            title: Text(l10n.translate('freeSlotTitle')),
+                            content: Text(l10n.translate('freeSlotSub').replaceAll('{slotNumber}', slot.slotNumber)),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Hủy'),
+                                child: Text(l10n.translate('cancel')),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                                child: const Text('Xác nhận'),
+                                child: Text(l10n.translate('confirm')),
                               ),
                             ],
                           ),
@@ -758,8 +653,8 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(success 
-                                    ? 'Đã giải phóng ô ${slot.slotNumber} thành công' 
-                                    : 'Lỗi cập nhật trạng thái'),
+                                    ? l10n.translate('freeSlotSuccess').replaceAll('{slotNumber}', slot.slotNumber) 
+                                    : l10n.translate('updateStatusFailed')),
                                 backgroundColor: success ? AppColors.success : AppColors.danger,
                               ),
                             );
@@ -767,7 +662,7 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         }
                       },
                       icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text('Giải phóng ô đỗ thủ công (Đặt lại thành Trống)'),
+                      label: Text(l10n.translate('manualFreeSlotDesc')),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
                         minimumSize: const Size(double.infinity, 40),
@@ -778,10 +673,17 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context); // Close bottom sheet first
-                      _showBookOnBehalfDialog(context, slot);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ManagerBookingPage(
+                            lot: widget.lot,
+                            slot: slot,
+                          ),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.assignment_ind_rounded, color: Colors.white),
-                    label: const Text('ĐẶT CHỖ HỘ KHÁCH HÀNG'),
+                    label: Text(l10n.translate('bookForGuestBtn')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -802,15 +704,15 @@ class _ManageSlotsPageState extends ConsumerState<ManageSlotsPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(success 
-                                ? 'Đã đưa ô ${slot.slotNumber} vào trạng thái bảo trì' 
-                                : 'Lỗi cập nhật trạng thái'),
+                                ? l10n.translate('setMaintenanceSuccess').replaceAll('{slotNumber}', slot.slotNumber) 
+                                : l10n.translate('updateStatusFailed')),
                             backgroundColor: success ? AppColors.success : AppColors.danger,
                           ),
                         );
                       }
                     },
                     icon: const Icon(Icons.build_rounded, color: Colors.white),
-                    label: const Text('ĐẶT BẢO TRÌ Ô ĐỖ'),
+                    label: Text(l10n.translate('setMaintenanceBtn')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber.shade800,
                       foregroundColor: Colors.white,

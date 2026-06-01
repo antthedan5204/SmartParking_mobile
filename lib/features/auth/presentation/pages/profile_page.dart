@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../providers/auth_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -48,14 +49,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       if (success) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật thông tin thành công!'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).translate('updateSuccess')),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
-        final error = ref.read(authProvider).errorMessage ?? 'Cập nhật thất bại';
+        final errorKey = ref.read(authProvider).errorMessage;
+        final error = errorKey != null ? AppLocalizations.of(context).translate(errorKey) : AppLocalizations.of(context).translate('updateFailed');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error),
@@ -78,7 +80,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildAppBar(user),
+          _buildAppBar(context, user),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -86,18 +88,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-                  
-                  // Statistics Section (Updated: Removed Rating)
-                  _buildStatsRow(),
-                  
-                  const SizedBox(height: 32),
-                  _buildSectionHeader('Thông tin cá nhân'),
+                  _buildSectionHeader(AppLocalizations.of(context).translate('personalInfo')),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildProfileItem(
-                          label: 'Họ và tên',
+                          label: AppLocalizations.of(context).translate('fullName'),
                           controller: _nameController,
                           icon: Icons.person_rounded,
                           enabled: _isEditing,
@@ -105,7 +102,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         _buildDivider(),
                         _buildProfileItem(
-                          label: 'Số điện thoại',
+                          label: AppLocalizations.of(context).translate('phone'),
                           controller: _phoneController,
                           icon: Icons.phone_android_rounded,
                           enabled: _isEditing,
@@ -114,7 +111,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         _buildDivider(),
                         _buildReadOnlyItem(
-                          label: 'Địa chỉ Email',
+                          label: AppLocalizations.of(context).translate('email'),
                           value: user?.email ?? '',
                           icon: Icons.alternate_email_rounded,
                           color: const Color(0xFF1E293B),
@@ -124,27 +121,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 32),
-                  _buildSectionHeader('Phương tiện & Bảo mật'),
+                  _buildSectionHeader(AppLocalizations.of(context).translate('vehicleAndSecurity')),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildSettingsAction(
-                          label: 'Quản lý biển số xe',
+                          label: AppLocalizations.of(context).translate('manageLicensePlates'),
                           icon: Icons.directions_car_filled_rounded,
                           color: const Color(0xFF6366F1),
                           onTap: () => context.push('/vehicles'),
                         ),
                         _buildDivider(),
                         _buildReadOnlyItem(
-                          label: 'Vai trò người dùng',
+                          label: AppLocalizations.of(context).translate('role'),
                           value: user?.role ?? 'User',
                           icon: Icons.verified_user_rounded,
                           color: const Color(0xFF1E293B),
                         ),
                         _buildDivider(),
                         _buildSettingsAction(
-                          label: 'Đổi mật khẩu',
+                          label: AppLocalizations.of(context).translate('changePassword'),
                           icon: Icons.lock_person_rounded,
                           color: const Color(0xFFEF4444),
                           onTap: () => _showChangePasswordDialog(context, ref),
@@ -154,23 +151,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 32),
-                  _buildSectionHeader('Tùy chọn khác'),
+                  _buildSectionHeader(AppLocalizations.of(context).translate('otherOptions')),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildSettingsAction(
-                          label: 'Cài đặt ngôn ngữ',
+                          label: AppLocalizations.of(context).translate('languageSettings'),
                           icon: Icons.translate_rounded,
                           color: const Color(0xFF1E293B),
-                          onTap: () {},
+                          onTap: () => _showLanguageSelector(context, ref),
                         ),
                         _buildDivider(),
                         _buildSettingsAction(
-                          label: 'Trung tâm hỗ trợ',
+                          label: AppLocalizations.of(context).translate('helpCenter'),
                           icon: Icons.help_outline_rounded,
                           color: const Color(0xFF1E293B),
-                          onTap: () {},
+                          onTap: () {
+                            context.push('/help-center');
+                          },
                         ),
                       ],
                     ),
@@ -179,9 +178,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(height: 40),
                   
                   if (_isEditing)
-                    _buildActionButtons(isLoading)
+                    _buildActionButtons(context, isLoading)
                   else
-                    _buildEditButton(),
+                    _buildEditButton(context),
                     
                   const SizedBox(height: 20),
                   _buildLogoutButton(context, ref),
@@ -195,7 +194,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildAppBar(dynamic user) {
+  Widget _buildAppBar(BuildContext context, dynamic user) {
     return SliverAppBar(
       expandedHeight: 260,
       pinned: true,
@@ -263,7 +262,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  user?.name ?? 'Khách',
+                  user?.name ?? AppLocalizations.of(context).translate('guest'),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -293,48 +292,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildStatsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatItem('12', 'Đơn đặt', const Color(0xFF6366F1)),
-        _buildStatItem('3', 'Phương tiện', const Color(0xFF10B981)),
-      ],
-    );
-  }
 
-  Widget _buildStatItem(String value, String label, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF64748B),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: 30,
-          height: 3,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildSectionHeader(String title) {
     return Text(
@@ -497,7 +455,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildEditButton() {
+  Widget _buildEditButton(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 56,
@@ -514,7 +472,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: ElevatedButton.icon(
         onPressed: () => setState(() => _isEditing = true),
         icon: const Icon(Icons.mode_edit_outline_rounded, size: 20),
-        label: const Text('CHỈNH SỬA HỒ SƠ'),
+        label: Text(AppLocalizations.of(context).translate('editProfile')),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
@@ -526,7 +484,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildActionButtons(bool isLoading) {
+  Widget _buildActionButtons(BuildContext context, bool isLoading) {
     return Row(
       children: [
         Expanded(
@@ -539,7 +497,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
               ),
               child: Text(
-                'HỦY',
+                AppLocalizations.of(context).translate('cancel').toUpperCase(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF64748B),
@@ -563,7 +521,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: isLoading
                   ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
-                      'LƯU LẠI',
+                      AppLocalizations.of(context).translate('save').toUpperCase(),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),
@@ -580,8 +538,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: TextButton.icon(
         onPressed: () => _showLogoutDialog(context, ref),
         icon: const Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
-        label: const Text(
-          'ĐĂNG XUẤT TÀI KHOẢN',
+        label: Text(
+          AppLocalizations.of(context).translate('logoutAccount'),
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Color(0xFFEF4444),
@@ -605,13 +563,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text(
-              'Hệ thống sẽ gửi email mã OTP đổi mật khẩu. Bạn có chắc chắn muốn đổi mật khẩu không?'),
+          title: Text(AppLocalizations.of(context).translate('confirmAction'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: Text(AppLocalizations.of(context).translate('confirmPasswordChange')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('TỪ CHỐI', style: TextStyle(color: Color(0xFF64748B))),
+              child: Text(AppLocalizations.of(context).translate('decline'), style: const TextStyle(color: Color(0xFF64748B))),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -636,14 +593,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Mã OTP đã được gửi về email của bạn!'),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context).translate('otpSent')),
                         backgroundColor: AppColors.success,
                       ),
                     );
                     context.push('/reset-password', extra: {'email': user.email});
                   } else {
-                    final error = ref.read(authProvider).errorMessage ?? 'Gửi OTP thất bại';
+                    final errorKey = ref.read(authProvider).errorMessage;
+                    final error = errorKey != null ? AppLocalizations.of(context).translate(errorKey) : AppLocalizations.of(context).translate('sendOtpFailed');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(error),
@@ -659,7 +617,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('XÁC NHẬN'),
+              child: Text(AppLocalizations.of(context).translate('accept')),
             ),
           ],
         ),
@@ -674,12 +632,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?'),
+          title: Text(AppLocalizations.of(context).translate('confirmAction'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: Text(AppLocalizations.of(context).translate('confirmLogout')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('ĐỂ SAU', style: TextStyle(color: Color(0xFF64748B))),
+              child: Text(AppLocalizations.of(context).translate('later'), style: const TextStyle(color: Color(0xFF64748B))),
             ),
             ElevatedButton(
               onPressed: () {
@@ -693,11 +651,55 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('ĐĂNG XUẤT'),
+              child: Text(AppLocalizations.of(context).translate('logout').toUpperCase()),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showLanguageSelector(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final currentLocale = ref.watch(localeProvider).languageCode;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                AppLocalizations.of(context).translate('selectLanguage'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.language),
+                title: Text(AppLocalizations.of(context).translate('vietnamese')),
+                trailing: currentLocale == 'vi' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                onTap: () {
+                  ref.read(localeProvider.notifier).setLocale(const Locale('vi'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.language),
+                title: Text(AppLocalizations.of(context).translate('english')),
+                trailing: currentLocale == 'en' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                onTap: () {
+                  ref.read(localeProvider.notifier).setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

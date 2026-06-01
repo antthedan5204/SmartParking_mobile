@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../parking/domain/entities/booking.dart';
 import '../../../parking/presentation/providers/parking_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/user_management_provider.dart';
 import '../../domain/usecases/get_all_bookings_usecase.dart';
 
@@ -116,14 +117,16 @@ class BookingManagementNotifier extends StateNotifier<BookingManagementState> {
         );
       },
       (bookings) {
-        // If the user is a Manager, they should only see bookings for their lots
-        // Ideally the backend handles this, but we filter here as insurance
-        // final user = ref.read(authProvider).user;
-        var filteredBookings = bookings;
+        // Since backend filtering might not be working perfectly, 
+        // we apply client-side filtering for Managers.
+        final authState = ref.read(authProvider);
+        final isAdmin = authState.user?.isAdmin ?? false;
         
-        // Note: For real environment, Manager ID should be used to filter lots.
-        // Assuming the list from backend is already filtered if we're a manager,
-        // otherwise we could filter by lot list.
+        List<Booking> filteredBookings = bookings;
+        if (!isAdmin) {
+          final managerLotNames = ref.read(parkingLotsProvider).lots.map((l) => l.name).toSet();
+          filteredBookings = bookings.where((b) => managerLotNames.contains(b.lotName)).toList();
+        }
 
         state = state.copyWith(
           isLoading: false,

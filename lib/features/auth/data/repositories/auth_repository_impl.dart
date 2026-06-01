@@ -87,7 +87,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on UnauthorizedException {
-      return const Left(AuthFailure('Phiên đăng nhập đã hết hạn'));
+      return const Left(AuthFailure('sessionExpired'));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -218,6 +218,49 @@ class AuthRepositoryImpl implements AuthRepository {
         newPassword: newPassword,
       );
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> sendVerificationEmail(String email) async {
+    try {
+      await remoteDataSource.sendVerificationEmail(email);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> verifyEmail({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final user = await remoteDataSource.verifyEmail(
+        email: email,
+        token: token,
+      );
+
+      // Save token and user data to cache
+      if (user.token != null) {
+        await secureStorage.write(
+          key: AppConstants.tokenKey,
+          value: user.token!,
+        );
+      }
+      await secureStorage.write(
+        key: AppConstants.userKey,
+        value: json.encode(user.toJson()),
+      );
+
+      return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

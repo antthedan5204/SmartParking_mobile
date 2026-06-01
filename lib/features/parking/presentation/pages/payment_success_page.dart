@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/payment.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class PaymentSuccessPage extends StatelessWidget {
+class PaymentSuccessPage extends ConsumerWidget {
   final Booking booking;
   final Payment payment;
 
@@ -17,9 +20,30 @@ class PaymentSuccessPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final format = DateFormat('hh:mm a  dd:MM:yyyy');
     final duration = booking.endTime.difference(booking.startTime);
+
+    void onClose() {
+      final user = ref.read(authProvider).user;
+      if ((user?.isAdmin ?? false) || (user?.isManager ?? false)) {
+        // Manager uses pushReplacement, so popping returns to ManageSlotsPage
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/admin');
+        }
+      } else {
+        // Pop back to the previous screen (e.g. MyBookingsPage)
+        // instead of hard-navigating to /home
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/home');
+        }
+      }
+    }
     
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
@@ -28,7 +52,7 @@ class PaymentSuccessPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFF1A237E)),
-          onPressed: () => context.go('/home'),
+          onPressed: onClose,
         ),
       ),
       body: SingleChildScrollView(
@@ -91,7 +115,7 @@ class PaymentSuccessPage extends StatelessWidget {
                           ],
                         ),
                         Text(
-                          'Bill No. 00${booking.id}',
+                          '${l10n.translate('billNo')} 00${booking.id}',
                           style: AppTextStyles.caption.copyWith(
                             color: Colors.grey[600],
                             fontWeight: FontWeight.bold,
@@ -102,7 +126,7 @@ class PaymentSuccessPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'HOÁ ĐƠN',
+                    l10n.translate('invoiceTitle'),
                     style: AppTextStyles.heading2.copyWith(
                       color: const Color(0xFF1A237E),
                       fontWeight: FontWeight.w900,
@@ -110,9 +134,9 @@ class PaymentSuccessPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Thanh toán thành công',
-                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                  Text(
+                    l10n.translate('paymentSuccessTitle'),
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -120,10 +144,10 @@ class PaymentSuccessPage extends StatelessWidget {
                   ),
 
                   // Parking Details
-                  _buildSectionTitle('Thông tin gửi xe'),
-                  _buildInfoRow('Bãi đỗ', booking.lotName ?? 'Smart Park'),
-                  _buildInfoRow('Vị trí', 'Ô số ${booking.slotId}'),
-                  _buildInfoRow('Biển số xe', booking.vehiclePlateNumber ?? 'N/A'),
+                  _buildSectionTitle(l10n.translate('parkingInfoTitle')),
+                  _buildInfoRow(l10n.translate('parkingLotLabel'), booking.lotName ?? 'Smart Park'),
+                  _buildInfoRow(l10n.translate('slotLabel'), '${l10n.translate('slotPrefix') ?? 'Ô số '}${booking.slotId}'),
+                  _buildInfoRow(l10n.translate('licensePlateLabel'), booking.vehiclePlateNumber ?? 'N/A'),
                   
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -131,7 +155,7 @@ class PaymentSuccessPage extends StatelessWidget {
                   ),
 
                   // Time Duration
-                  _buildSectionTitle('Thời gian'),
+                  _buildSectionTitle(l10n.translate('timeTitle')),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
@@ -162,7 +186,7 @@ class PaymentSuccessPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatusLabel('Vào'),
+                        _buildStatusLabel(l10n.translate('timeIn')),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
@@ -170,7 +194,7 @@ class PaymentSuccessPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${duration.inHours} Giờ',
+                            '${duration.inHours} ${l10n.translate('hourText')}',
                             style: const TextStyle(
                               color: Color(0xFF6366F1),
                               fontWeight: FontWeight.bold,
@@ -178,7 +202,7 @@ class PaymentSuccessPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                        _buildStatusLabel('Ra'),
+                        _buildStatusLabel(l10n.translate('timeOut')),
                       ],
                     ),
                   ),
@@ -189,10 +213,10 @@ class PaymentSuccessPage extends StatelessWidget {
                   ),
 
                   // Payment Details
-                  _buildSectionTitle('Chi tiết thanh toán'),
-                  _buildPriceRow('Phí gửi xe', '${payment.amount.toStringAsFixed(0)} đ'),
-                  _buildPriceRow('Khuyến mãi', '-0 đ', isDiscount: true),
-                  _buildPriceRow('Tổng cộng', '${payment.amount.toStringAsFixed(0)} đ', isTotal: true),
+                  _buildSectionTitle(l10n.translate('paymentDetailsTitle')),
+                  _buildPriceRow(l10n.translate('parkingFeeLabel'), '${payment.amount.toStringAsFixed(0)} ${l10n.translate('currencyShort')}'),
+                  _buildPriceRow(l10n.translate('discount'), '-0 ${l10n.translate('currencyShort')}', isDiscount: true),
+                  _buildPriceRow(l10n.translate('totalAmount'), '${payment.amount.toStringAsFixed(0)} ${l10n.translate('currencyShort')}', isTotal: true),
                   
                   const SizedBox(height: 32),
                   // Action Icons
@@ -202,20 +226,20 @@ class PaymentSuccessPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         GestureDetector(
-                          onTap: () => _downloadInvoice(context),
+                          onTap: () => _downloadInvoice(context, l10n),
                           child: _buildActionIcon(Icons.file_download_outlined),
                         ),
                         GestureDetector(
-                          onTap: () => _shareInvoice(context),
+                          onTap: () => _shareInvoice(context, l10n),
                           child: _buildActionIcon(Icons.share_outlined),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!',
-                    style: TextStyle(color: Colors.grey, fontSize: 10),
+                  Text(
+                    l10n.translate('thanksForUsingService'),
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -227,16 +251,16 @@ class PaymentSuccessPage extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () => context.go('/home'),
+                onPressed: onClose,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'ĐÓNG',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                child: Text(
+                  l10n.translate('closeBtn'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ),
@@ -325,43 +349,43 @@ class PaymentSuccessPage extends StatelessWidget {
     );
   }
 
-  String _buildInvoiceText() {
+  String _buildInvoiceText(AppLocalizations l10n) {
     final format = DateFormat('HH:mm, dd/MM/yyyy');
     final now = DateFormat('HH:mm:ss, dd/MM/yyyy').format(DateTime.now());
     return '''
-📄 HÓA ĐƠN GỬI XE - SMART PARK
+📄 ${l10n.translate('invoiceShareTitle')}
 -------------------------------
-Mã đơn: #${booking.id}
-Thời gian in: $now
+${l10n.translate('bookingIdLabel')} #${booking.id}
+${l10n.translate('printTimeLabel')} $now
 
-📍 CHI TIẾT BÃI ĐỖ
-Bãi đỗ: ${booking.lotName ?? 'Smart Park'}
-Vị trí: Ô số ${booking.slotId}
-Biển số xe: ${booking.vehiclePlateNumber}
+📍 ${l10n.translate('parkingDetailsSection')}
+${l10n.translate('parkingLotLabel')}: ${booking.lotName ?? 'Smart Park'}
+${l10n.translate('slotLabel')}: ${l10n.translate('slotPrefix') ?? 'Ô số '}${booking.slotId}
+${l10n.translate('licensePlateLabel')}: ${booking.vehiclePlateNumber}
 
-⏰ THỜI GIAN
-Vào: ${format.format(booking.startTime.toLocal())}
-Ra: ${format.format(booking.endTime.toLocal())}
+⏰ ${l10n.translate('timeSection')}
+${l10n.translate('timeIn')}: ${format.format(booking.startTime.toLocal())}
+${l10n.translate('timeOut')}: ${format.format(booking.endTime.toLocal())}
 
-💰 THANH TOÁN
-Tổng tiền: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'VNĐ').format(payment.amount)}
-Trạng thái: THÀNH CÔNG
-Mã giao dịch: ${payment.transactionId}
+💰 ${l10n.translate('paymentSection')}
+${l10n.translate('totalMoneyLabel')} ${NumberFormat.decimalPattern().format(payment.amount)} ${l10n.translate('currencyShort')}
+${l10n.translate('statusSuccessLabel')}
+${l10n.translate('transactionIdLabel')} ${payment.transactionId}
 
-Cảm ơn bạn đã sử dụng dịch vụ của Smart Park!
+${l10n.translate('thanksForUsingSmartPark')}
 ''';
   }
 
-  Future<void> _shareInvoice(BuildContext context) async {
-    final text = _buildInvoiceText();
-    await Share.share(text, subject: 'Hóa đơn gửi xe Smart Park');
+  Future<void> _shareInvoice(BuildContext context, AppLocalizations l10n) async {
+    final text = _buildInvoiceText(l10n);
+    await Share.share(text, subject: l10n.translate('invoiceSubject'));
   }
 
-  Future<void> _downloadInvoice(BuildContext context) async {
+  Future<void> _downloadInvoice(BuildContext context, AppLocalizations l10n) async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đang tạo file hóa đơn...'),
-        duration: Duration(seconds: 1),
+      SnackBar(
+        content: Text(l10n.translate('generatingInvoice')),
+        duration: const Duration(seconds: 1),
       ),
     );
     
@@ -370,8 +394,8 @@ Cảm ơn bạn đã sử dụng dịch vụ của Smart Park!
     
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã lưu hóa đơn vào máy thành công!'),
+        SnackBar(
+          content: Text(l10n.translate('saveInvoiceSuccess')),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),

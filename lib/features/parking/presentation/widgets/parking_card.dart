@@ -70,7 +70,7 @@ class ParkingCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      isFull ? 'HẾT CHỖ' : 'CÒN CHỖ',
+                      l10n.translate(isFull ? 'statusFull' : 'statusAvailable'),
                       style: AppTextStyles.caption.copyWith(
                         color: isFull ? AppColors.danger : AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -91,7 +91,7 @@ class ParkingCard extends StatelessWidget {
                     const Icon(Icons.directions_walk, size: 12, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
-                      'Cách bạn $distanceText km',
+                      '${l10n.translate('distanceFromYou').replaceAll('{distance}', distanceText)}',
                       style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -122,9 +122,9 @@ class ParkingCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Sức chứa bãi đỗ', style: AppTextStyles.caption),
+                      Text(l10n.translate('lotCapacity'), style: AppTextStyles.caption),
                       Text(
-                        '$available / $total chỗ trống',
+                        '$available / $total ${l10n.translate('availableSlotsSuffix')}',
                         style: AppTextStyles.subtitle2.copyWith(color: AppColors.textPrimary),
                       ),
                     ],
@@ -176,7 +176,7 @@ class ParkingCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Giá theo giờ', style: AppTextStyles.caption),
+                        Text(l10n.pricePerHour, style: AppTextStyles.caption),
                         Text(
                           '${lot.pricePerHour.toStringAsFixed(0)} ${l10n.currency}',
                           style: AppTextStyles.subtitle1,

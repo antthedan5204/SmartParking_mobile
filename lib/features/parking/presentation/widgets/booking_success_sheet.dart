@@ -45,9 +45,9 @@ class BookingSuccessSheet extends StatelessWidget {
                 child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 64),
               ),
               const SizedBox(height: 16),
-              Text('Thanh toán thành công!', style: AppTextStyles.heading2, textAlign: TextAlign.center),
+              Text(l10n.translate('paymentSuccessTitle'), style: AppTextStyles.heading2, textAlign: TextAlign.center),
               const SizedBox(height: 8),
-              Text('Chỗ đỗ của bạn đã sẵn sàng', style: AppTextStyles.body2, textAlign: TextAlign.center),
+              Text(l10n.translate('parkingReadyMessage'), style: AppTextStyles.body2, textAlign: TextAlign.center),
               const SizedBox(height: 20),
               
               // QR Code Section - Wrapped in SizedBox for layout stability
@@ -88,17 +88,17 @@ class BookingSuccessSheet extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildReceiptRow('Mã hóa đơn', '#PK${booking.id.toString().padLeft(6, '0')}'),
+                    _buildReceiptRow(l10n.translate('receiptId'), '#PK${booking.id.toString().padLeft(6, '0')}'),
                     const Divider(height: 24),
-                    _buildReceiptRow('Bãi đỗ', booking.lotName ?? ''),
-                    _buildReceiptRow('Vị trí đỗ', 'Ô số ${booking.slotNumber ?? booking.slotId}'),
-                    _buildReceiptRow('Thời hạn', 'Đến ${timeFormat.format(booking.endTime)}'),
-                    _buildReceiptRow('Phương tiện', 'Ô tô'),
+                    _buildReceiptRow(l10n.translate('parkingLot'), booking.lotName ?? ''),
+                    _buildReceiptRow(l10n.translate('slotLabel'), '${l10n.translate('slotPrefix') ?? 'Ô số '}${booking.slotNumber ?? booking.slotId}'),
+                    _buildReceiptRow(l10n.translate('timeLimit'), '${l10n.translate('until')}${timeFormat.format(booking.endTime.toLocal())}'),
+                    _buildReceiptRow(l10n.translate('vehicle'), l10n.translate('car')),
                     const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Tổng tiền', style: AppTextStyles.subtitle2),
+                        Text(l10n.translate('totalAmount'), style: AppTextStyles.subtitle2),
                         Text(
                           '${payment.amount.toStringAsFixed(0)} ${l10n.currency}',
                           style: AppTextStyles.subtitle1.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
@@ -127,7 +127,7 @@ class BookingSuccessSheet extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text('XONG', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  child: Text(l10n.translate('doneBtn'), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ),
               ),
             ],

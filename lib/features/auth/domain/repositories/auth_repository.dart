@@ -43,4 +43,11 @@ abstract class AuthRepository {
     required String token,
     required String newPassword,
   });
+
+  Future<Either<Failure, void>> sendVerificationEmail(String email);
+
+  Future<Either<Failure, User>> verifyEmail({
+    required String email,
+    required String token,
+  });
 }

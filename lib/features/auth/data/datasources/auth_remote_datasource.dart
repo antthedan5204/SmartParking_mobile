@@ -37,7 +37,7 @@ class AuthRemoteDataSource {
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 400) {
         throw ServerException(
-          message: e.response?.data?['message'] ?? 'Email hoặc mật khẩu không đúng',
+          message: e.response?.data?['message'] ?? 'wrongCredentials',
           statusCode: e.response?.statusCode,
         );
       }
@@ -205,7 +205,7 @@ class AuthRemoteDataSource {
       return response.statusCode == 200;
     } on DioException catch (e) {
       throw ServerException(
-        message: e.response?.data?['message'] ?? 'Mã xác nhận không đúng hoặc đã hết hạn',
+        message: e.response?.data?['message'] ?? 'invalidOtp',
         statusCode: e.response?.statusCode,
       );
     }
@@ -229,6 +229,57 @@ class AuthRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
         message: e.response?.data?['message'] ?? 'Failed to reset password',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<bool> sendVerificationEmail(String email) async {
+    try {
+      final response = await dio.post(
+        ApiEndpoints.sendVerificationEmail,
+        data: {'email': email},
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      throw ServerException(
+        message: e.response?.data?['message'] ?? 'Gửi email xác thực thất bại',
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  Future<UserModel> verifyEmail({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final response = await dio.post(
+        ApiEndpoints.verifyEmail,
+        data: {
+          'email': email,
+          'token': token,
+        },
+      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = response.data;
+        if (responseData['success'] == true) {
+          final data = responseData['data'] as Map<String, dynamic>;
+          final jwtToken = data['token'] ?? data['accessToken'] ?? '';
+          return UserModel.fromJson(data, token: jwtToken);
+        }
+        throw ServerException(
+          message: responseData['message'] ?? 'Xác thực thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+      throw ServerException(
+        message: response.data?['message'] ?? 'Xác thực thất bại',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException(
+        message: e.response?.data?['message'] ?? 'invalidOtp',
         statusCode: e.response?.statusCode,
       );
     }

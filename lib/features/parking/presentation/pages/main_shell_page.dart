@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 /// Total height occupied by the floating navbar (bar + margins).
 /// Other pages use this to add bottom padding so content isn't hidden.
@@ -15,11 +16,11 @@ class MainShellPage extends ConsumerWidget {
   const MainShellPage({super.key, required this.navigationShell});
 
   static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Trang chủ'),
-    _NavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long_rounded, label: 'Đơn đặt'),
-    _NavItem(icon: Icons.local_parking_outlined, activeIcon: Icons.local_parking_rounded, label: 'Đặt chỗ'),
-    _NavItem(icon: Icons.notifications_none_rounded, activeIcon: Icons.notifications_rounded, label: 'Thông báo'),
-    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Tài khoản'),
+    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'home'),
+    _NavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long_rounded, label: 'orders'),
+    _NavItem(icon: Icons.local_parking_outlined, activeIcon: Icons.local_parking_rounded, label: 'booking'),
+    _NavItem(icon: Icons.notifications_none_rounded, activeIcon: Icons.notifications_rounded, label: 'notifications'),
+    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'account'),
   ];
 
   @override
@@ -178,7 +179,7 @@ class MainShellPage extends ConsumerWidget {
                     height: 1.2,
                   ),
                   child: Text(
-                    item.label,
+                    AppLocalizations.of(context).translate(item.label),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -36,10 +36,15 @@ class _AdminStaffContentState extends ConsumerState<AdminStaffContent> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                l10n.staffManagement,
-                style: AppTextStyles.heading3,
+              Expanded(
+                child: Text(
+                  l10n.staffManagement,
+                  style: AppTextStyles.heading3,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: () => _showCreateStaffDialog(context, ref),
                 icon: const Icon(Icons.person_add_outlined, size: 18),
@@ -142,9 +147,10 @@ class _AdminStaffContentState extends ConsumerState<AdminStaffContent> {
 
     if (result == true) {
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tạo nhân viên thành công'),
+          SnackBar(
+            content: Text(l10n.translate('createStaffSuccess')),
             backgroundColor: AppColors.success,
           ),
         );

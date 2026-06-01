@@ -17,11 +17,24 @@ import '../widgets/occupancy_chart.dart';
 import '../widgets/admin_bookings_content.dart';
 import '../providers/booking_management_provider.dart';
 
-class AdminDashboardPage extends ConsumerWidget {
+class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardPage> createState() => _AdminDashboardPageState();
+}
+
+class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(adminDashboardProvider.notifier).loadDashboard();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final authState = ref.watch(authProvider);
     final dashboardState = ref.watch(adminDashboardProvider);
@@ -114,8 +127,10 @@ class AdminDashboardPage extends ConsumerWidget {
                           icon: Icons.dashboard_outlined,
                           label: l10n.dashboard,
                           isSelected: dashboardState.selectedTab == 0,
-                          onTap: () =>
-                              ref.read(adminDashboardProvider.notifier).setTab(0),
+                          onTap: () {
+                            ref.read(adminDashboardProvider.notifier).setTab(0);
+                            ref.read(adminDashboardProvider.notifier).loadDashboard();
+                          },
                         ),
                         _buildAdminTab(
                           icon: Icons.location_on_outlined,
@@ -136,7 +151,7 @@ class AdminDashboardPage extends ConsumerWidget {
                           ),
                         _buildAdminTab(
                           icon: Icons.book_online_outlined,
-                          label: 'Đơn đặt',
+                          label: l10n.translate('bookings'),
                           isSelected: dashboardState.selectedTab == 4,
                           onTap: () {
                             ref.read(adminDashboardProvider.notifier).setTab(4);
@@ -145,7 +160,7 @@ class AdminDashboardPage extends ConsumerWidget {
                         ),
                         _buildAdminTab(
                           icon: Icons.history,
-                          label: 'Lịch sử',
+                          label: l10n.translate('historyHome'),
                           isSelected: dashboardState.selectedTab == 5,
                           onTap: () {
                             ref.read(adminDashboardProvider.notifier).setTab(5);
@@ -174,7 +189,7 @@ class AdminDashboardPage extends ConsumerWidget {
                               ? const AdminBookingsContent(isHistoryView: true)
                               : (dashboardState.selectedTab == 1)
                                   ? const AdminZonesContent()
-                                  : _buildDashboardContent(context, dashboardState, l10n),
+                                  : _buildDashboardContent(context, ref, dashboardState, l10n),
             ),
           ],
         ),
@@ -184,6 +199,7 @@ class AdminDashboardPage extends ConsumerWidget {
 
   Widget _buildDashboardContent(
     BuildContext context,
+    WidgetRef ref,
     AdminDashboardState state,
     AppLocalizations l10n,
   ) {
@@ -197,7 +213,7 @@ class AdminDashboardPage extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        // Refresh will be handled by the provider
+        await ref.read(adminDashboardProvider.notifier).loadDashboard();
       },
       color: AppColors.primary,
       child: SingleChildScrollView(

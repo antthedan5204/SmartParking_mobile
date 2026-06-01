@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/services/realtime_notification_service.dart';
 
 /// Simple in-memory notification model for display purposes.
@@ -120,7 +121,7 @@ class NotificationsPage extends ConsumerWidget {
             // Content
             Expanded(
               child: notifications.isEmpty
-                  ? _buildEmptyState()
+                  ? _buildEmptyState(context)
                   : _buildNotificationList(notifications, notifier),
             ),
           ],
@@ -146,12 +147,12 @@ class NotificationsPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Thông báo', style: AppTextStyles.heading2),
+                Text(AppLocalizations.of(context).translate('notificationsTitle'), style: AppTextStyles.heading2),
                 const SizedBox(height: 4),
                 Text(
                   unreadCount > 0
-                      ? 'Bạn có $unreadCount thông báo chưa đọc'
-                      : 'Tất cả đã được đọc',
+                      ? AppLocalizations.of(context).translate('unreadNotificationsCount').replaceAll('{count}', unreadCount.toString())
+                      : AppLocalizations.of(context).translate('allRead'),
                   style: AppTextStyles.body2,
                 ),
               ],
@@ -168,7 +169,7 @@ class NotificationsPage extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Text(
-                    'Đọc tất cả',
+                    AppLocalizations.of(context).translate('markAllAsRead'),
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
@@ -182,7 +183,7 @@ class NotificationsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -200,12 +201,12 @@ class NotificationsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Chưa có thông báo',
+          Text(AppLocalizations.of(context).translate('noNotifications'),
               style: AppTextStyles.subtitle1
                   .copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: 8),
           Text(
-            'Các thông báo mới sẽ xuất hiện tại đây',
+            AppLocalizations.of(context).translate('newNotificationsWillAppearHere'),
             style: AppTextStyles.body2,
           ),
         ],
@@ -327,7 +328,7 @@ class NotificationsPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _timeAgo(notification.timestamp),
+                      _timeAgo(notification.timestamp, context),
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textHint,
                         fontSize: 11,
@@ -360,12 +361,13 @@ class NotificationsPage extends ConsumerWidget {
     }
   }
 
-  String _timeAgo(DateTime dateTime) {
+  String _timeAgo(DateTime dateTime, BuildContext context) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'Vừa xong';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-    if (diff.inDays < 7) return '${diff.inDays} ngày trước';
+    final l10n = AppLocalizations.of(context);
+    if (diff.inMinutes < 1) return l10n.translate('justNow');
+    if (diff.inMinutes < 60) return l10n.translate('minutesAgo').replaceAll('{count}', diff.inMinutes.toString());
+    if (diff.inHours < 24) return l10n.translate('hoursAgo').replaceAll('{count}', diff.inHours.toString());
+    if (diff.inDays < 7) return l10n.translate('daysAgo').replaceAll('{count}', diff.inDays.toString());
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 }

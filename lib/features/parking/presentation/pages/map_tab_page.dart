@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../widgets/parking_map_view.dart';
 
 /// Wrapper page for the Map tab in the bottom navigation bar.
@@ -42,8 +43,8 @@ class MapTabPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Bản đồ', style: AppTextStyles.heading3),
-                        Text('Tìm bãi đỗ xe quanh bạn',
+                        Text(AppLocalizations.of(context).translate('map'), style: AppTextStyles.heading3),
+                        Text(AppLocalizations.of(context).translate('findParkingAroundYou'),
                             style: AppTextStyles.body2),
                       ],
                     ),

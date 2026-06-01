@@ -70,7 +70,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           backgroundColor: AppColors.success,
         ),
       );
-      context.pop();
+      context.pushReplacement('/verify-email', extra: {'email': _emailController.text.trim()});
     }
   }
 
@@ -83,7 +83,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(AppLocalizations.of(context).translate(next.errorMessage!)),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -134,7 +134,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                           label: l10n.fullName,
                           hint: l10n.fullNameHint,
                           controller: _nameController,
-                          validator: Validators.validateRequired,
+                          validator: (val) => Validators.validateRequired(val, l10n),
                         ),
                         const SizedBox(height: 16),
 
@@ -144,7 +144,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                           hint: l10n.emailHint,
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          validator: Validators.validateEmail,
+                          validator: (val) => Validators.validateEmail(val, l10n),
                         ),
                         const SizedBox(height: 16),
 
@@ -154,7 +154,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                           hint: l10n.phoneHint,
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          validator: Validators.validatePhone,
+                          validator: (val) => Validators.validatePhone(val, l10n),
                         ),
                         const SizedBox(height: 16),
 
@@ -164,7 +164,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                           hint: l10n.passwordHint,
                           controller: _passwordController,
                           isPassword: true,
-                          validator: Validators.validatePassword,
+                          validator: (val) => Validators.validatePassword(val, l10n),
                         ),
                         const SizedBox(height: 16),
 
@@ -178,6 +178,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
                               Validators.validateConfirmPassword(
                             val,
                             _passwordController.text,
+                            l10n
                           ),
                         ),
                         const SizedBox(height: 24),

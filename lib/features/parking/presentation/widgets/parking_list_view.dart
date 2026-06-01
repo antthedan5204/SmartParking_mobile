@@ -8,11 +8,26 @@ import 'parking_card.dart';
 import 'parking_lot_details_sheet.dart';
 import '../pages/select_slot_page.dart';
 
-class ParkingListView extends ConsumerWidget {
+class ParkingListView extends ConsumerStatefulWidget {
   const ParkingListView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ParkingListView> createState() => _ParkingListViewState();
+}
+
+class _ParkingListViewState extends ConsumerState<ParkingListView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(parkingLotsProvider).lots.isEmpty) {
+        ref.read(parkingLotsProvider.notifier).loadParkingLots();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final parkingState = ref.watch(parkingLotsProvider);
     final userPosition = ref.watch(userLocationProvider);
     final l10n = AppLocalizations.of(context);

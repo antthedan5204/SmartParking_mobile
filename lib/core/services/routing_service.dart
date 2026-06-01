@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import 'package:flutter/foundation.dart';
+
 class RoutingService {
   static const String _baseUrl = 'https://router.project-osrm.org/route/v1/driving';
 
@@ -21,7 +23,7 @@ class RoutingService {
         }
       }
     } catch (e) {
-      print('Routing error: $e');
+      debugPrint('Routing error: $e');
     }
     return [];
   }
@@ -44,7 +46,7 @@ class RoutingService {
         }
       }
     } catch (e) {
-      print('Route info error: $e');
+      debugPrint('Route info error: $e');
     }
     return null;
   }

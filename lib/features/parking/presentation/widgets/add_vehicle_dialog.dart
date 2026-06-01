@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../providers/vehicle_provider.dart';
 
 class AddVehicleDialog extends ConsumerStatefulWidget {
@@ -38,6 +39,7 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(vehicleProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -51,13 +53,13 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Thêm phương tiện mới',
+                  l10n.translate('addVehicleTitle'),
                   style: AppTextStyles.heading3,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Nhập biển số xe của bạn để hệ thống nhận diện tại bãi đỗ.',
+                  l10n.translate('addVehicleSub'),
                   style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -67,13 +69,13 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                 TextFormField(
                   controller: _plateController,
                   decoration: InputDecoration(
-                    labelText: 'Biển số xe',
-                    hintText: 'VD: 30A-123.45',
+                    labelText: l10n.translate('licensePlate'),
+                    hintText: l10n.translate('licensePlateExample'),
                     prefixIcon: const Icon(Icons.pin_outlined),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   textCapitalization: TextCapitalization.characters,
-                  validator: (value) => (value == null || value.isEmpty) ? 'Vui lòng nhập biển số' : null,
+                  validator: (value) => (value == null || value.isEmpty) ? l10n.translate('pleaseEnterLicensePlate') : null,
                 ),
                 const SizedBox(height: 16),
                 
@@ -82,7 +84,7 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                   children: [
                      Expanded(
                        child: _buildTypeCard(
-                         'Ô tô', 
+                         l10n.translate('car'), 
                          Icons.directions_car_filled_rounded, 
                          'Car'
                        ),
@@ -90,7 +92,7 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                      const SizedBox(width: 12),
                      Expanded(
                        child: _buildTypeCard(
-                         'Xe máy', 
+                         l10n.translate('motorbike'), 
                          Icons.moped_rounded, 
                          'Motorbike'
                        ),
@@ -119,11 +121,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                   ),
                   child: state.isLoading 
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Thêm phương tiện', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : Text(l10n.translate('addVehicleBtn'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy bỏ', style: TextStyle(color: AppColors.textSecondary)),
+                  child: Text(l10n.translate('cancel'), style: const TextStyle(color: AppColors.textSecondary)),
                 ),
               ],
             ),

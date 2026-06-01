@@ -5,77 +5,49 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../domain/entities/booking.dart';
-import '../../domain/entities/parking_lot.dart';
-import '../../domain/entities/payment.dart';
-import '../providers/parking_provider.dart';
-import '../providers/booking_provider.dart';
-import '../providers/vehicle_provider.dart';
-import '../widgets/add_vehicle_dialog.dart';
-import 'payment_success_page.dart';
+import '../../../parking/domain/entities/parking_lot.dart';
+import '../../../parking/domain/entities/parking_slot.dart';
+import '../../../parking/presentation/pages/payment_success_page.dart';
+import '../providers/manage_slots_provider.dart';
+import '../providers/booking_management_provider.dart';
 
-class VirtualPaymentPage extends ConsumerStatefulWidget {
+class ManagerBookingPage extends ConsumerStatefulWidget {
   final ParkingLot lot;
-  final double amount;
-  final int? selectedSlotId;
-  final String? selectedSlotNumber;
-  final DateTime? startTime;
-  final DateTime? endTime;
+  final ParkingSlot slot;
 
-  const VirtualPaymentPage({
+  const ManagerBookingPage({
     super.key,
     required this.lot,
-    required this.amount,
-    this.selectedSlotId,
-    this.selectedSlotNumber,
-    this.startTime,
-    this.endTime,
+    required this.slot,
   });
 
   @override
-  ConsumerState<VirtualPaymentPage> createState() => _VirtualPaymentPageState();
+  ConsumerState<ManagerBookingPage> createState() => _ManagerBookingPageState();
 }
 
-class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
-  PaymentMethod _selectedMethod = PaymentMethod.momo;
+class _ManagerBookingPageState extends ConsumerState<ManagerBookingPage> {
   bool _isProcessing = false;
   late DateTime _startTime;
   late DateTime _endTime;
-  int? _selectedVehicleId;
+  final TextEditingController _plateController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    if (widget.startTime != null && widget.endTime != null) {
-      _startTime = widget.startTime!;
-      _endTime = widget.endTime!;
-    } else {
-      _startTime = DateTime.now().add(const Duration(minutes: 5));
-      _startTime = _startTime.subtract(Duration(minutes: _startTime.minute % 5));
-      _endTime = _startTime.add(const Duration(hours: 1));
-    }
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialData();
-    });
+    _startTime = DateTime.now().add(const Duration(minutes: 5));
+    _startTime = _startTime.subtract(Duration(minutes: _startTime.minute % 5));
+    _endTime = _startTime.add(const Duration(hours: 1));
   }
 
-  Future<void> _loadInitialData() async {
-    await ref.read(vehicleProvider.notifier).loadVehicles();
-    final vehicles = ref.read(vehicleProvider).vehicles;
-    if (vehicles.isNotEmpty && mounted) {
-      setState(() {
-        _selectedVehicleId = vehicles.first.id;
-      });
-    }
+  @override
+  void dispose() {
+    _plateController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final bookingState = ref.watch(bookingProvider);
-    final vehicleState = ref.watch(vehicleProvider);
-    
     final duration = _endTime.difference(_startTime);
     final double hours = duration.inMinutes / 60.0;
     final totalPrice = widget.lot.pricePerHour * hours;
@@ -85,10 +57,10 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1A237E)),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          l10n.translate('paymentTitle'),
+          l10n.translate('bookForGuestTitle'),
           style: AppTextStyles.subtitle1.copyWith(color: const Color(0xFF1A237E), fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -130,7 +102,7 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
       ),
       body: _isProcessing 
         ? _buildProcessingState(l10n)
-        : _buildUnifiedSelectionState(context, l10n, bookingState, vehicleState, totalPrice),
+        : _buildUnifiedSelectionState(context, totalPrice, l10n),
     );
   }
 
@@ -141,13 +113,13 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
         children: [
           const CircularProgressIndicator(color: Color(0xFF1A237E)),
           const SizedBox(height: 24),
-          Text(l10n.processing, style: AppTextStyles.subtitle1),
+          Text(l10n.translate('processingBooking'), style: AppTextStyles.subtitle1),
         ],
       ),
     );
   }
 
-  Widget _buildUnifiedSelectionState(BuildContext context, AppLocalizations l10n, BookingState state, VehicleState vehicleState, double totalPrice) {
+  Widget _buildUnifiedSelectionState(BuildContext context, double totalPrice, AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -160,8 +132,20 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
             child: Column(
               children: [
                 _buildFigmaInfoRow(l10n.translate('lotNameLabel'), widget.lot.name),
-                _buildFigmaInfoRow(l10n.translate('parkingSlotLabel'), '${l10n.translate('slotPrefix')}${widget.selectedSlotNumber ?? '8'}'),
-                _buildVehicleSelector(vehicleState, l10n),
+                _buildFigmaInfoRow(l10n.translate('parkingSlotLabel'), '${l10n.translate('slotPrefix') ?? 'Ô số '}${widget.slot.slotNumber}'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: TextField(
+                    controller: _plateController,
+                    decoration: InputDecoration(
+                      labelText: l10n.translate('guestLicensePlate'),
+                      hintText: l10n.translate('guestLicensePlateHint'),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                ),
               ],
             ),
           ),
@@ -190,28 +174,17 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
           ),
           const SizedBox(height: 12),
           _buildFigmaPaymentMethod(
-            method: PaymentMethod.momo,
-            title: l10n.translate('momoWallet'),
-            subtitle: l10n.translate('momoDesc'),
-            icon: Icons.account_balance_wallet_rounded,
-            color: const Color(0xFFA50064),
-          ),
-          const SizedBox(height: 12),
-          _buildFigmaPaymentMethod(
-            method: PaymentMethod.vnpay,
-            title: l10n.translate('vnpayPortal'),
-            subtitle: l10n.translate('vnpayDesc'),
-            icon: Icons.qr_code_scanner_rounded,
-            color: const Color(0xFF005BAA),
+            title: l10n.translate('cashPayment'),
+            subtitle: l10n.translate('cashPaymentDesc'),
+            icon: Icons.money_rounded,
+            color: Colors.green,
           ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: (_selectedVehicleId == null) 
-                  ? () => _addNewVehicle(context) 
-                  : () => _showQRSimulation(context, totalPrice),
+              onPressed: () => _handlePayment(totalPrice, l10n),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
                 foregroundColor: Colors.white,
@@ -219,76 +192,13 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
                 elevation: 0,
               ),
               child: Text(
-                (_selectedVehicleId == null) ? l10n.translate('registerLicensePlate') : l10n.translate('payBtn'),
+                l10n.translate('confirmBooking'),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ),
           ),
           const SizedBox(height: 32),
         ],
-      ),
-    );
-  }
-
-  void _showQRSimulation(BuildContext context, double finalAmount) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppLocalizations.of(context).translate('scanQRCode'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(AppLocalizations.of(context).translate('pleaseScanToPay').replaceAll('{amount}', finalAmount.toStringAsFixed(0))),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Icon(Icons.qr_code_2_rounded, size: 160, color: _selectedMethod == PaymentMethod.momo ? const Color(0xFFA50064) : const Color(0xFF005BAA)),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(AppLocalizations.of(context).translate('waitingForScan'), style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // Sử dụng biến _handlePayment mà không truyền context từ Dialog
-                  _handlePayment(finalAmount);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(AppLocalizations.of(context).translate('confirmScanned')),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -347,36 +257,6 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
         children: [
           Text(label, style: AppTextStyles.body2.copyWith(color: Colors.grey[600])),
           Text(value, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVehicleSelector(VehicleState vehicleState, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(l10n.translate('licensePlateLabel'), style: AppTextStyles.body2.copyWith(color: Colors.grey[600])),
-          vehicleState.vehicles.isEmpty 
-            ? TextButton(
-                onPressed: () => _addNewVehicle(context),
-                child: Text(l10n.translate('addNow'), style: const TextStyle(color: Color(0xFF6366F1))),
-              )
-            : DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: _selectedVehicleId,
-                  isDense: true,
-                  items: vehicleState.vehicles.map((v) => DropdownMenuItem(
-                    value: v.id,
-                    child: Text(v.licensePlate, style: AppTextStyles.body2.copyWith(fontWeight: FontWeight.bold)),
-                  )).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedVehicleId = val);
-                  },
-                ),
-              ),
         ],
       ),
     );
@@ -481,119 +361,97 @@ class _VirtualPaymentPageState extends ConsumerState<VirtualPaymentPage> {
   }
 
   Widget _buildFigmaPaymentMethod({
-    required PaymentMethod method,
     required String title,
     required String subtitle,
     required IconData icon,
     required Color color,
   }) {
-    final isSelected = _selectedMethod == method;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedMethod = method),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF1A237E) : Colors.transparent,
-            width: 2,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF1A237E),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold)),
+                Text(subtitle, style: AppTextStyles.caption.copyWith(color: Colors.grey)),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: AppTextStyles.subtitle2.copyWith(fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: AppTextStyles.caption.copyWith(color: Colors.grey)),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey[400]),
-          ],
-        ),
+          ),
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF1A237E)),
+        ],
       ),
     );
   }
 
-  void _addNewVehicle(BuildContext context) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => const AddVehicleDialog(),
-    );
-    if (result == true && mounted) {
-      await ref.read(vehicleProvider.notifier).loadVehicles();
+  Future<void> _handlePayment(double finalAmount, AppLocalizations l10n) async {
+    final plate = _plateController.text.trim();
+    if (plate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('pleaseEnterGuestLicensePlate'))),
+      );
+      return;
     }
-  }
 
-  Future<void> _handlePayment(double finalAmount) async {
-    if (_selectedVehicleId == null) return;
-    
-    // Khởi tạo messenger TRƯỚC khi chạy lệnh async
+    final duration = _endTime.difference(_startTime);
+    if (duration.inHours <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('minParkingTimeIs1Hour'))),
+      );
+      return;
+    }
+
+    setState(() => _isProcessing = true);
     final messenger = ScaffoldMessenger.of(context);
     
-    setState(() => _isProcessing = true);
-    
-    final result = await ref.read(bookingProvider.notifier).processBookingAndPayment(
+    final result = await ref.read(manageSlotsProvider.notifier).bookOnBehalf(
+      slotId: widget.slot.id,
       lotId: widget.lot.id,
-      slotId: widget.selectedSlotId ?? 0,
-      vehicleId: _selectedVehicleId!,
+      plateNumber: plate,
+      durationHours: duration.inHours,
       amount: finalAmount,
-      startTime: _startTime,
-      endTime: _endTime,
-      method: _selectedMethod,
+      lotName: widget.lot.name,
+      slotNumber: widget.slot.slotNumber,
     );
 
     if (!mounted) return;
+    setState(() => _isProcessing = false);
 
     if (result != null) {
-      if (mounted) setState(() => _isProcessing = false);
-      debugPrint('DEBUG: Payment successful, attempting to navigate to /payment-success');
-      try {
-        if (!mounted) return;
-        context.go(
-          '/payment-success',
-          extra: {
-            'booking': result['booking'],
-            'payment': result['payment'],
-          },
-        );
-        debugPrint('DEBUG: Navigation command executed');
-      } catch (e) {
-        debugPrint('DEBUG: Navigation error: $e');
-        // Nếu context.go lỗi, thử dùng push truyền thống (fallback)
-        if (mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => PaymentSuccessPage(
-                booking: result['booking'],
-                payment: result['payment'],
-              ),
-            ),
-          );
-        }
-      }
+      ref.read(bookingManagementProvider.notifier).loadBookings();
+      
+      // Navigate to PaymentSuccessPage
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => PaymentSuccessPage(
+            booking: result['booking'],
+            payment: result['payment'],
+          ),
+        ),
+      );
     } else {
-      debugPrint('DEBUG: Payment failed, result is null');
-      if (mounted) setState(() => _isProcessing = false);
-      final errorKey = ref.read(bookingProvider).errorMessage;
-      final error = errorKey != null ? AppLocalizations.of(context).translate(errorKey) : AppLocalizations.of(context).translate('paymentFailed');
       messenger.showSnackBar(
         SnackBar(
-          content: Text(error),
-          backgroundColor: const Color(0xFFEF5350),
-          behavior: SnackBarBehavior.floating,
+          content: Text(l10n.translate('bookForGuestFailed')),
+          backgroundColor: AppColors.danger,
         ),
       );
     }

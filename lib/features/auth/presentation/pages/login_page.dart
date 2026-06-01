@@ -33,15 +33,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
+    _fadeAnim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
 
@@ -56,7 +55,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authProvider.notifier).login(
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -86,23 +87,31 @@ class _LoginPageState extends ConsumerState<LoginPage>
   }
 
   Future<void> _handleForgotPassword() async {
+    final l10n = AppLocalizations.of(context);
     final email = _emailController.text.trim();
-    if (email.isEmpty || Validators.validateEmail(email) != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập email hợp lệ để đặt lại mật khẩu'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+    if (email.isEmpty || Validators.validateEmail(email, l10n) != null) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.translate('enterValidEmailToReset')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
       return;
     }
 
-    final success =
-        await ref.read(authProvider.notifier).sendPasswordResetEmail(email);
+    final success = await ref
+        .read(authProvider.notifier)
+        .sendPasswordResetEmail(email);
     if (mounted && success) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.'),
+        SnackBar(
+          content: Text(
+            l10n.translate('resetPasswordEmailSent'),
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -118,9 +127,16 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
+        if (next.errorMessage == 'EMAIL_NOT_VERIFIED') {
+          context.push(
+            '/verify-email',
+            extra: {'email': _emailController.text.trim()},
+          );
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(AppLocalizations.of(context).translate(next.errorMessage!)),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -173,11 +189,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         child: Image.asset(
                           'assets/images/logo.png',
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                            Icons.local_parking_rounded,
-                            size: 44,
-                            color: AppColors.primary,
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.local_parking_rounded,
+                                size: 44,
+                                color: AppColors.primary,
+                              ),
                         ),
                       ),
                     ),
@@ -213,8 +230,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           // Role toggle
                           RoleToggle(
                             isAdminSelected: _isAdmin,
-                            onChanged: (val) =>
-                                setState(() => _isAdmin = val),
+                            onChanged: (val) => setState(() => _isAdmin = val),
                             userLabel: l10n.user,
                             adminLabel: l10n.admin,
                           ),
@@ -226,7 +242,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             hint: l10n.emailHint,
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            validator: Validators.validateEmail,
+                            validator: (val) => Validators.validateEmail(val, l10n),
                           ),
                           const SizedBox(height: 16),
 
@@ -236,7 +252,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             hint: l10n.passwordHint,
                             controller: _passwordController,
                             isPassword: true,
-                            validator: Validators.validatePassword,
+                            validator: (val) => Validators.validatePassword(val, l10n),
                           ),
                           const SizedBox(height: 24),
 
@@ -258,9 +274,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                       ),
                                     )
                                   : Text(
-                                      _isAdmin
-                                          ? l10n.loginAsAdmin
-                                          : l10n.login,
+                                      _isAdmin ? l10n.loginAsAdmin : l10n.login,
                                       style: AppTextStyles.button,
                                     ),
                             ),
@@ -290,7 +304,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'Hoặc',
+                              l10n.translate('orLabel'),
                               style: AppTextStyles.caption.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -311,8 +325,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               : _handleGoogleLogin,
                           icon: authState.status == AuthStatus.loading
                               ? const SizedBox.shrink()
-                              : const Icon(Icons.g_mobiledata_rounded,
-                                  size: 32, color: AppColors.primary),
+                              : const Icon(
+                                  Icons.g_mobiledata_rounded,
+                                  size: 32,
+                                  color: AppColors.primary,
+                                ),
                           label: authState.status == AuthStatus.loading
                               ? const SizedBox(
                                   width: 24,
@@ -322,11 +339,13 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                 )
                               : Text(
-                                  'Đăng nhập với Google',
+                                  l10n.translate('loginWithGoogle'),
                                   style: AppTextStyles.button,
                                 ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.borderLight),
+                            side: const BorderSide(
+                              color: AppColors.borderLight,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -379,7 +398,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.language, size: 16, color: AppColors.textSecondary),
+            const Icon(
+              Icons.language,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: 4),
             Text(
               locale.languageCode == 'vi' ? 'VI' : 'EN',

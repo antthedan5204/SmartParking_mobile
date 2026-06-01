@@ -51,8 +51,8 @@ class ParkingSearchPage extends ConsumerWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Đặt chỗ', style: AppTextStyles.heading3),
-                          Text('Tìm và đặt bãi đỗ xe',
+                          Text(l10n.translate('booking'), style: AppTextStyles.heading3),
+                          Text(l10n.translate('searchAndBookParking'),
                               style: AppTextStyles.body2
                                   .copyWith(color: AppColors.textSecondary)),
                         ],

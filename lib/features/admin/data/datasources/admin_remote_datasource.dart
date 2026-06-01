@@ -116,18 +116,22 @@ class AdminRemoteDataSource {
     bool? hasEvStation,
   }) async {
     try {
+      final data = {
+        'name': name,
+        'address': address,
+        'totalSlots': totalSlots,
+        'pricePerHour': pricePerHour,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (managerId != null) 'managerId': managerId,
+        if (hasEvStation != null) 'hasEvStation': hasEvStation,
+      };
+      
+      debugPrint('[AdminRemoteDataSource] PUT /api/parking-lots/$id data: $data');
+
       final response = await dio.put(
         '${ApiEndpoints.parkingLots}/$id',
-        data: {
-          'name': name,
-          'address': address,
-          'totalSlots': totalSlots,
-          'pricePerHour': pricePerHour,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-          if (managerId != null) 'managerId': managerId,
-          if (hasEvStation != null) 'hasEvStation': hasEvStation,
-        },
+        data: data,
       );
 
       if (response.statusCode != 200) {

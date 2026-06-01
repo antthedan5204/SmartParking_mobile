@@ -6,7 +6,7 @@ class ApiEndpoints {
   //   → Mở cmd/terminal, gõ: ipconfig  → lấy dòng "IPv4 Address"
   // Android Emulator: để nguyên 10.0.2.2
   // ───────────────────────────────────────────────────────────────────
-  static const String baseUrl = 'http://10.0.2.2:5161';
+  static const String baseUrl = 'http://192.168.43.150:5161';
   static final String notificationHub = '$baseUrl/notificationHub';
 
   // Auth
@@ -16,6 +16,9 @@ class ApiEndpoints {
   static const String forgotPassword = '/api/Auth/forgot-password';
   static const String verifyResetToken = '/api/Auth/verify-reset-token';
   static const String resetPassword = '/api/Auth/reset-password';
+  static const String verifyEmail = '/api/Auth/verify-email';
+  static const String sendVerificationEmail =
+      '/api/Auth/send-verification-email';
 
   // Users
   static const String users = '/api/Users';

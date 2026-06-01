@@ -1,15 +1,23 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/parking_provider.dart';
 import '../../domain/entities/booking.dart';
+import 'package:smart_parking/features/parking/presentation/widgets/voice_booking_dialog.dart';
 import '../../domain/entities/parking_lot.dart';
+import '../widgets/parking_lot_details_sheet.dart';
+import 'select_slot_page.dart';
+
 import 'main_shell_page.dart';
+import '../providers/voice_booking_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -28,31 +36,62 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
-  String _getGreeting() {
+  String _getGreeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Chào buổi sáng';
-    if (hour < 18) return 'Chào buổi chiều';
-    return 'Chào buổi tối';
+    if (hour < 12) return l10n.translate('goodMorning');
+    if (hour < 18) return l10n.translate('goodAfternoon');
+    return l10n.translate('goodEvening');
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final bookingState = ref.watch(bookingProvider);
-    final parkingState = ref.watch(parkingLotsProvider);
-    final userName = authState.user?.name ?? '';
-    final now = DateTime.now();
-
-    final activeBookings = bookingState.userBookings.where((b) {
-      if (b.status == BookingStatus.checkedIn) return true;
-      if (b.status == BookingStatus.confirmed && !now.isAfter(b.endTime.toLocal())) return true;
-      return false;
-    }).toList();
-
-    final topLots = parkingState.lots.take(3).toList();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.homeBackground,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80.0),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: () => showVoiceBookingDialog(context, ref),
+            backgroundColor: AppColors.primary,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withValues(alpha: 0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(
+                Icons.mic_none_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+      ),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
@@ -64,81 +103,130 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(userName, context)),
-
             SliverToBoxAdapter(
-              child: _buildSectionTitle(
-                activeBookings.isNotEmpty
-                    ? 'Đặt chỗ hiện tại'
-                    : 'Không có đặt chỗ nào',
-                Icons.local_parking_rounded,
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final authState = ref.watch(authProvider);
+                  final userName = authState.user?.name ?? '';
+                  return _buildHeader(userName, context, l10n);
+                },
               ),
             ),
 
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                child: activeBookings.isNotEmpty
-                    ? _buildActiveBookingCard(activeBookings.first, context)
-                    : _buildNoActiveBookingCard(context),
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final bookingState = ref.watch(bookingProvider);
+                  final now = DateTime.now();
+                  final activeBookings = bookingState.userBookings.where((b) {
+                    if (b.status == BookingStatus.checkedIn) return true;
+                    if (b.status == BookingStatus.confirmed &&
+                        !now.isAfter(b.endTime.toLocal())) {
+                      return true;
+                    }
+                    return false;
+                  }).toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(
+                        activeBookings.isNotEmpty
+                            ? l10n.translate('currentBooking')
+                            : l10n.translate('noCurrentBooking'),
+                        Icons.local_parking_rounded,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                        child: activeBookings.isNotEmpty
+                            ? _buildActiveBookingCard(
+                                activeBookings.first,
+                                context,
+                                l10n,
+                              )
+                            : _buildNoActiveBookingCard(context, l10n),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
 
-            SliverToBoxAdapter(child: _buildQuickActions(context)),
+            SliverToBoxAdapter(child: _buildQuickActions(context, l10n)),
 
             SliverToBoxAdapter(
               child: _buildSectionTitle(
-                'Bãi đỗ xe gần đây',
+                l10n.translate('recentParkingLots'),
                 Icons.location_on_rounded,
               ),
             ),
 
-            if (parkingState.isLoading)
-              const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                ),
-              )
-            else if (topLots.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    'Không tìm thấy bãi đỗ xe',
-                    style: AppTextStyles.body2.copyWith(
-                      color: AppColors.textSecondary,
+            Consumer(
+              builder: (context, ref, child) {
+                final parkingState = ref.watch(parkingLotsProvider);
+                final topLots = parkingState.lots.take(3).toList();
+
+                if (parkingState.isLoading) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      0,
-                      20,
-                      index == topLots.length - 1 ? kNavBarTotalHeight + 8 : 12,
+                  );
+                } else if (topLots.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      child: Text(
+                        l10n.translate('noRecentParkingLots'),
+                        style: AppTextStyles.body2.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
-                    child: _buildParkingLotCard(topLots[index], context),
-                  ),
-                  childCount: topLots.length,
-                ),
-              ),
+                  );
+                } else {
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          0,
+                          20,
+                          index == topLots.length - 1
+                              ? kNavBarTotalHeight + 8
+                              : 12,
+                        ),
+                        child: _buildParkingLotCard(
+                          topLots[index],
+                          context,
+                          l10n,
+                        ),
+                      ),
+                      childCount: topLots.length,
+                    ),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(String userName, BuildContext context) {
+  Widget _buildHeader(
+    String userName,
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     final firstName = userName.split(' ').last;
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -148,11 +236,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         24,
       ),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF3F51B5), Color(0xFF5C6BC0), Color(0xFF7986CB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColors.homeHeaderGradient,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
@@ -191,7 +275,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getGreeting(),
+                      _getGreeting(l10n),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
@@ -199,7 +283,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
                     Text(
-                      firstName.isNotEmpty ? firstName : 'Người dùng',
+                      firstName.isNotEmpty ? firstName : l10n.translate('user'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -232,13 +316,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             children: [
               _buildHeaderChip(
                 Icons.local_parking_rounded,
-                'Tìm bãi xe',
+                l10n.translate('searchParkingHome'),
                 () => context.go('/parking'),
               ),
               const SizedBox(width: 12),
               _buildHeaderChip(
                 Icons.history_rounded,
-                'Lịch sử',
+                l10n.translate('historyHome'),
                 () => context.go('/bookings'),
               ),
             ],
@@ -298,7 +382,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildActiveBookingCard(Booking booking, BuildContext context) {
+  Widget _buildActiveBookingCard(
+    Booking booking,
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     final isCheckedIn = booking.status == BookingStatus.checkedIn;
     final localEnd = booking.endTime.toLocal();
     final remaining = localEnd.difference(DateTime.now());
@@ -311,8 +399,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ? AppColors.danger
         : (isCheckedIn ? AppColors.success : AppColors.primary);
     final statusLabel = isOvertime
-        ? 'Quá giờ đỗ xe!'
-        : (isCheckedIn ? 'Đang đỗ xe' : 'Đã đặt chỗ');
+        ? l10n.translate('parkingOvertime')
+        : (isCheckedIn
+              ? l10n.translate('parkingNow')
+              : l10n.translate('bookedNow'));
     final statusIcon = isOvertime
         ? Icons.warning_rounded
         : (isCheckedIn
@@ -376,7 +466,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             const SizedBox(height: 14),
             Text(
-              booking.lotName ?? 'Bãi đỗ xe',
+              booking.lotName ?? l10n.translate('parkingLot'),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -387,7 +477,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  'Ô số ${booking.slotNumber}',
+                  '${l10n.translate('slotPrefix') ?? 'Ô số '}${booking.slotNumber}',
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ),
@@ -408,12 +498,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                   const SizedBox(width: 8),
                   Text(
                     isOvertime
-                        ? 'Quá giờ: $hours giờ $minutes phút'
+                        ? l10n
+                              .translate('overtimeFormat')
+                              .replaceAll('{hours}', hours.toString())
+                              .replaceAll('{minutes}', minutes.toString())
                         : remaining.isNegative
-                        ? 'Đã đến giờ đỗ xe'
+                        ? l10n.translate('timeToPark')
                         : hours > 0
-                        ? 'Còn $hours giờ $minutes phút'
-                        : 'Còn $minutes phút',
+                        ? l10n
+                              .translate('remainingTimeFormatHM')
+                              .replaceAll('{hours}', hours.toString())
+                              .replaceAll('{minutes}', minutes.toString())
+                        : l10n
+                              .translate('remainingTimeFormatM')
+                              .replaceAll('{minutes}', minutes.toString()),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -441,7 +539,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Bạn chưa checkout. Sẽ phát sinh phí quá giờ!',
+                        l10n.translate('notCheckedOutWarning'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -454,8 +552,12 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               Builder(
                 builder: (context) {
-                  final overtimeMinutes = DateTime.now().difference(localEnd).inMinutes;
-                  final penaltyFee = overtimeMinutes > 10 ? overtimeMinutes * 1000 : 0;
+                  final overtimeMinutes = DateTime.now()
+                      .difference(localEnd)
+                      .inMinutes;
+                  final penaltyFee = overtimeMinutes > 10
+                      ? overtimeMinutes * 1000
+                      : 0;
                   if (penaltyFee > 0) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -469,7 +571,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Phí phạt hiện tại: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'VNĐ').format(penaltyFee)}',
+                              '${l10n.translate('penaltyFeePrefix')}${NumberFormat.decimalPattern().format(penaltyFee)} ${l10n.translate('currencyShort')}',
                               style: const TextStyle(
                                 color: Colors.yellowAccent,
                                 fontSize: 13,
@@ -482,7 +584,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     );
                   }
                   return const SizedBox.shrink();
-                }
+                },
               ),
             ],
             const SizedBox(height: 12),
@@ -498,9 +600,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Xem chi tiết đơn đặt',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                child: Text(
+                  l10n.translate('viewBookingDetails'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
@@ -510,7 +615,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildNoActiveBookingCard(BuildContext context) {
+  Widget _buildNoActiveBookingCard(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     return GestureDetector(
       onTap: () => context.go('/parking'),
       child: Container(
@@ -547,10 +655,13 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Chưa có đặt chỗ nào', style: AppTextStyles.subtitle2),
+                  Text(
+                    l10n.translate('noCurrentBooking'),
+                    style: AppTextStyles.subtitle2,
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                    'Nhấn để tìm và đặt bãi đỗ xe ngay',
+                    l10n.translate('tapToSearchParking'),
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -569,30 +680,30 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Row(
         children: [
           _buildActionButton(
             icon: Icons.search_rounded,
-            label: 'Đặt chỗ',
+            label: l10n.translate('parking'),
             color: AppColors.primary,
             onTap: () => context.go('/parking'),
           ),
           const SizedBox(width: 12),
           _buildActionButton(
             icon: Icons.receipt_long_rounded,
-            label: 'Đơn đặt',
-            color: const Color(0xFF00897B),
+            label: l10n.translate('bookings'),
+            color: AppColors.quickActionBookings,
             onTap: () => context.go('/bookings'),
           ),
           const SizedBox(width: 12),
           _buildActionButton(
-            icon: Icons.map_rounded,
-            label: 'Bản đồ',
-            color: const Color(0xFFFB8C00),
-            onTap: () => context.go('/parking'),
+            icon: Icons.help_outline_rounded,
+            label: l10n.translate('helpCenter'),
+            color: AppColors.quickActionHelp,
+            onTap: () => context.push('/help-center'),
           ),
         ],
       ),
@@ -646,7 +757,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildParkingLotCard(ParkingLot lot, BuildContext context) {
+  Widget _buildParkingLotCard(
+    ParkingLot lot,
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
     final total = lot.totalSlots;
     final available = lot.availableSlots ?? 0;
     final occupancy = total > 0 ? (available / total) : 0.0;
@@ -655,17 +770,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     String statusText;
     if (occupancy > 0.5) {
       statusColor = AppColors.occupancyHigh;
-      statusText = 'Còn nhiều chỗ';
+      statusText = l10n.translate('lotsPlenty');
     } else if (occupancy > 0.2) {
       statusColor = AppColors.occupancyMedium;
-      statusText = 'Còn ít chỗ';
+      statusText = l10n.translate('lotsFew');
     } else {
       statusColor = available > 0 ? AppColors.occupancyLow : AppColors.danger;
-      statusText = available > 0 ? 'Gần đầy' : 'Hết chỗ';
+      statusText = available > 0
+          ? l10n.translate('lotsAlmostFull')
+          : l10n.translate('lotsFull');
     }
 
     return GestureDetector(
-      onTap: () => context.go('/parking'),
+      onTap: () => _showDetails(context, lot),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -740,7 +857,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '$available/$total chỗ',
+                          l10n
+                              .translate('slotCountFormat')
+                              .replaceAll('{available}', available.toString())
+                              .replaceAll('{total}', total.toString()),
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -754,14 +874,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${_formatPrice(lot.pricePerHour)}đ',
+                    '${_formatPrice(lot.pricePerHour)}${l10n.translate('currencyShort')}',
                     style: AppTextStyles.subtitle2.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    '/giờ',
+                    l10n.translate('perHour'),
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -786,5 +906,54 @@ class _HomePageState extends ConsumerState<HomePage> {
       return '${(price / 1000).toStringAsFixed(0)}k';
     }
     return price.toStringAsFixed(0);
+  }
+
+  void _showDetails(BuildContext context, ParkingLot lot) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ParkingLotDetailsSheet(
+        lot: lot,
+        onNavigate: () {
+          // TODO: Implement map navigation
+          Navigator.pop(context);
+        },
+        onPay: () {
+          Navigator.pop(context);
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(builder: (context) => SelectSlotPage(lot: lot)),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: AppColors.primary.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            l10n.translate('noParkingLots'),
+            style: AppTextStyles.subtitle1.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
   }
 }

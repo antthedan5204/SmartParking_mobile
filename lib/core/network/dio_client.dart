@@ -35,16 +35,27 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 class AuthInterceptor extends Interceptor {
   final Ref ref;
+  static String? _cachedToken;
+  static bool _isTokenLoaded = false;
 
   AuthInterceptor(this.ref);
 
+  // Allow clearing cache from outside (e.g. on logout)
+  static void clearTokenCache() {
+    _cachedToken = null;
+    _isTokenLoaded = false;
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final storage = ref.read(secureStorageProvider);
-    final token = await storage.read(key: AppConstants.tokenKey);
+    if (!_isTokenLoaded) {
+      final storage = ref.read(secureStorageProvider);
+      _cachedToken = await storage.read(key: AppConstants.tokenKey);
+      _isTokenLoaded = true;
+    }
 
-    if (token != null && token.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (_cachedToken != null && _cachedToken!.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $_cachedToken';
     }
 
     handler.next(options);
@@ -52,27 +63,49 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Phát hiện tunnel offline (Cloudflare Tunnel, hoặc tunnel khác)
     final statusCode = err.response?.statusCode;
     final responseBody = err.response?.data?.toString() ?? '';
+    
     if (statusCode == 502 || statusCode == 503 || statusCode == 530 ||
         responseBody.contains('tunnel') && responseBody.contains('refused') ||
         responseBody.contains('failed to connect to origin')) {
-      throw NetworkException(
-        message:
-            'Backend đang offline hoặc tunnel chưa được khởi động. '
-            'Hãy kiểm tra lại cloudflared và backend server.',
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: NetworkException(message: 'backendOffline'),
+        )
       );
+      return;
     }
 
-    if (err.response?.statusCode == 401) {
-      throw UnauthorizedException(message: 'Phiên đăng nhập đã hết hạn');
+    if (err.response?.statusCode == 401 && !err.requestOptions.path.contains('/api/Auth/')) {
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: UnauthorizedException(message: 'sessionExpired'),
+        )
+      );
+      return;
     }
+    
     if (err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError) {
-      throw NetworkException(message: 'Không thể kết nối đến máy chủ');
+      handler.reject(
+        DioException(
+          requestOptions: err.requestOptions,
+          response: err.response,
+          type: err.type,
+          error: NetworkException(message: 'networkError'),
+        )
+      );
+      return;
     }
+    
     handler.next(err);
   }
 }

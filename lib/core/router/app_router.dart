@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/auth/presentation/pages/verify_email_page.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
+import '../../features/auth/presentation/pages/help_center_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/parking/presentation/pages/home_page.dart';
@@ -41,7 +43,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authState = ref.read(authProvider);
       final status = authState.status;
-      
+
       // Chờ cho đến khi trạng thái auth thoát khỏi 'initial'
       if (status == AuthStatus.initial) {
         return null; // Ở lại splash
@@ -52,16 +54,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoginRoute = state.matchedLocation == '/login';
       final isRegisterRoute = state.matchedLocation == '/register';
       final isResetPasswordRoute = state.matchedLocation == '/reset-password';
+      final isVerifyEmailRoute = state.matchedLocation == '/verify-email';
 
       // Nếu chưa đăng nhập và không ở các trang auth/splash, chuyển về login
-      if (!isLoggedIn && !isLoginRoute && !isRegisterRoute && !isSplashRoute && !isResetPasswordRoute) {
+      if (!isLoggedIn &&
+          !isLoginRoute &&
+          !isRegisterRoute &&
+          !isSplashRoute &&
+          !isResetPasswordRoute &&
+          !isVerifyEmailRoute) {
         return '/login';
       }
 
       // Nếu đã đăng nhập hoặc đã xác định là chưa đăng nhập, và đang ở splash
       if (isSplashRoute) {
         if (isLoggedIn) {
-          if ((authState.user?.isAdmin ?? false) || (authState.user?.isManager ?? false)) {
+          if ((authState.user?.isAdmin ?? false) ||
+              (authState.user?.isManager ?? false)) {
             return '/admin';
           }
           return '/home';
@@ -70,9 +79,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       }
 
-      // Nếu đã đăng nhập và đang ở trang login, chuyển về home phù hợp
-      if (isLoggedIn && isLoginRoute) {
-        if ((authState.user?.isAdmin ?? false) || (authState.user?.isManager ?? false)) {
+      // Nếu đã đăng nhập và đang ở trang login, verify-email, register, chuyển về home phù hợp
+      if (isLoggedIn &&
+          (isLoginRoute || isVerifyEmailRoute || isRegisterRoute)) {
+        if ((authState.user?.isAdmin ?? false) ||
+            (authState.user?.isManager ?? false)) {
           return '/admin';
         }
         return '/home';
@@ -106,8 +117,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const begin = Offset(1.0, 0.0);
             const end = Offset.zero;
-            final tween = Tween(begin: begin, end: end)
-                .chain(CurveTween(curve: Curves.easeInOut));
+            final tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: Curves.easeInOut));
             return SlideTransition(
               position: animation.drive(tween),
               child: child,
@@ -124,6 +137,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ResetPasswordPage(email: email);
         },
       ),
+      GoRoute(
+        path: '/verify-email',
+        name: 'verify-email',
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>? ?? {};
+          final email = extras['email'] as String? ?? '';
+          return VerifyEmailPage(email: email);
+        },
+      ),
 
       // ---------- Bottom Navigation Shell ----------
       StatefulShellRoute.indexedStack(
@@ -137,9 +159,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home',
                 name: 'home',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: HomePage(),
-                ),
+                pageBuilder: (context, state) =>
+                    NoTransitionPage(child: HomePage()),
               ),
             ],
           ),
@@ -149,9 +170,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/bookings',
                 name: 'bookings',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: MyBookingsPage(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: MyBookingsPage()),
               ),
             ],
           ),
@@ -161,9 +181,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/parking',
                 name: 'parking',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: ParkingSearchPage(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ParkingSearchPage()),
               ),
             ],
           ),
@@ -173,9 +192,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notifications',
                 name: 'notifications',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: NotificationsPage(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: NotificationsPage()),
               ),
             ],
           ),
@@ -185,9 +203,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 name: 'profile',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: ProfilePage(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ProfilePage()),
               ),
             ],
           ),
@@ -205,6 +222,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             return FadeTransition(opacity: animation, child: child);
           },
         ),
+      ),
+      GoRoute(
+        path: '/help-center',
+        name: 'help-center',
+        builder: (context, state) => const HelpCenterPage(),
       ),
       GoRoute(
         path: '/vehicles',

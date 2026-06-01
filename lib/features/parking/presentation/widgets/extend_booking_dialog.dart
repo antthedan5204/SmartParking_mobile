@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/payment.dart';
 import '../providers/booking_provider.dart';
@@ -25,25 +26,26 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
     // In real app, we might want to fetch lot price or use a fixed rate
     const double pricePer30Min = 10000; 
     final extraAmount = (_extraMinutes / 30) * pricePer30Min;
+    final l10n = AppLocalizations.of(context);
 
     return AlertDialog(
-      title: const Text('Gia hạn gửi xe'),
+      title: Text(l10n.translate('extendBookingTitle')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Thời gian hiện tại: ${widget.booking.endTime.hour}:${widget.booking.endTime.minute.toString().padLeft(2, '0')}', 
+            Text('${l10n.translate('currentTime')}: ${widget.booking.endTime.hour}:${widget.booking.endTime.minute.toString().padLeft(2, '0')}', 
               style: AppTextStyles.body2),
             const SizedBox(height: 16),
-            const Text('Chọn thời gian thêm:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('chooseExtraTime'), style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _buildTimeOption(30, '30 phút'),
-            _buildTimeOption(60, '1 giờ'),
-            _buildTimeOption(120, '2 giờ'),
+            _buildTimeOption(30, l10n.translate('thirtyMinutes')),
+            _buildTimeOption(60, l10n.translate('oneHour')),
+            _buildTimeOption(120, l10n.translate('twoHours')),
             
             const Divider(height: 32),
-            const Text('Phương thức thanh toán:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l10n.translate('paymentMethodLabel'), style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             _buildPaymentOption(PaymentMethod.momo, 'MoMo', Icons.account_balance_wallet_rounded, const Color(0xFFA50064)),
             _buildPaymentOption(PaymentMethod.vnpay, 'VNPay', Icons.payment_rounded, const Color(0xFF005BAA)),
@@ -52,8 +54,8 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Phí phát sinh:'),
-                Text('${extraAmount.toStringAsFixed(0)} VNĐ', 
+                Text(l10n.translate('extraFee')),
+                Text('${extraAmount.toStringAsFixed(0)} ${l10n.translate('currencyShort')}', 
                   style: AppTextStyles.subtitle2.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ],
             ),
@@ -61,7 +63,7 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('HỦY')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.translate('cancel'))),
         ElevatedButton(
           onPressed: () async {
             final newEndTime = widget.booking.endTime.add(Duration(minutes: _extraMinutes));
@@ -75,7 +77,7 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
             if (success && mounted) {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đã gia hạn thành công!')),
+                SnackBar(content: Text(l10n.translate('extendSuccess'))),
               );
             }
           },
@@ -83,7 +85,7 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
           ),
-          child: const Text('XÁC NHẬN'),
+          child: Text(l10n.translate('confirmBtn')),
         ),
       ],
     );

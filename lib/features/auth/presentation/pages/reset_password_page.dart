@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
@@ -46,12 +47,15 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   Future<void> _nextStep() async {
     final token = _otpControllers.map((c) => c.text).join();
     if (token.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập đủ 6 mã số'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.translate('pleaseEnter6Digits')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
       return;
     }
 
@@ -72,12 +76,15 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mật khẩu nhập lại không khớp'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.translate('passwordsDoNotMatch')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
       return;
     }
 
@@ -88,9 +95,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         );
 
     if (mounted && success) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.'),
+        SnackBar(
+          content: Text(l10n.translate('resetPasswordSuccess')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -161,17 +169,19 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!),
+            content: Text(AppLocalizations.of(context).translate(next.errorMessage!)),
             backgroundColor: AppColors.danger,
           ),
         );
       }
     });
 
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('Đặt lại mật khẩu'),
+        title: Text(l10n.translate('resetPassword')),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: _step == 2
@@ -191,7 +201,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               children: [
                 if (_step == 1) ...[
                   Text(
-                    'Vui lòng nhập mã xác nhận 6 số được gửi đến email:\n${widget.email}',
+                    l10n.translate('enterResetOtpDesc').replaceAll('{email}', widget.email),
                     style: AppTextStyles.body1,
                     textAlign: TextAlign.center,
                   ),
@@ -212,35 +222,34 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                                 color: AppColors.textOnPrimary,
                               ),
                             )
-                          : Text('Tiếp tục', style: AppTextStyles.button),
+                          : Text(l10n.translate('continueText'), style: AppTextStyles.button),
                     ),
                   ),
                 ] else ...[
                   Text(
-                    'Tạo mật khẩu mới cho tài khoản của bạn',
+                    l10n.translate('createNewPasswordDesc'),
                     style: AppTextStyles.body1,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
                   AuthTextField(
-                    label: 'Mật khẩu mới',
-                    hint: 'Nhập mật khẩu mới',
+                    label: l10n.translate('newPassword'),
+                    hint: l10n.translate('enterNewPassword'),
                     controller: _passwordController,
                     isPassword: true,
-                    validator: Validators.validatePassword,
+                    validator: (val) => Validators.validatePassword(val, l10n),
                   ),
                   const SizedBox(height: 16),
                   AuthTextField(
-                    label: 'Nhập lại mật khẩu mới',
-                    hint: 'Xác nhận mật khẩu mới',
+                    label: l10n.translate('confirmNewPasswordLabel'),
+                    hint: l10n.translate('enterConfirmNewPassword'),
                     controller: _confirmPasswordController,
                     isPassword: true,
-                    validator: (val) {
-                      if (val == null || val.isEmpty) {
-                        return 'Vui lòng nhập lại mật khẩu';
-                      }
-                      return null;
-                    },
+                    validator: (val) => Validators.validateConfirmPassword(
+                      val,
+                      _passwordController.text,
+                      l10n
+                    ),
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
@@ -259,7 +268,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               ),
                             )
                           : Text(
-                              'Đổi mật khẩu',
+                              l10n.translate('changePasswordBtn'),
                               style: AppTextStyles.button,
                             ),
                     ),

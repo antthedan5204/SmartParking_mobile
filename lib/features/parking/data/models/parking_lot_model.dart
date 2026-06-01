@@ -1,4 +1,5 @@
 
+import 'package:flutter/foundation.dart';
 import '../../../../core/utils/data_utils.dart';
 import '../../domain/entities/parking_lot.dart';
 
@@ -17,6 +18,12 @@ class ParkingLotModel extends ParkingLot {
   });
 
   factory ParkingLotModel.fromJson(Map<String, dynamic> json) {
+    // Parse managerId safely: return null if missing or 0 (unassigned)
+    final rawManagerId = json['managerId'] ?? json['ManagerId'] ?? json['managerUserId'] ?? json['ManagerUserId'];
+    final parsedManagerId = (rawManagerId != null && rawManagerId != 0) 
+        ? DataUtils.toInt(rawManagerId) 
+        : null;
+    
     return ParkingLotModel(
       id: DataUtils.toInt(json['id'] ?? json['Id']),
       name: DataUtils.parseString(json['name'] ?? json['Name']),
@@ -28,7 +35,7 @@ class ParkingLotModel extends ParkingLot {
       availableSlots: DataUtils.toInt(json['availableSlots'] ?? json['AvailableSlots'], defaultValue: -1) == -1 
           ? null 
           : DataUtils.toInt(json['availableSlots'] ?? json['AvailableSlots']),
-      managerId: DataUtils.toInt(json['managerId'] ?? json['ManagerId']),
+      managerId: parsedManagerId,
       hasEvStation: json['hasEvStation'] ?? json['HasEvStation'] ?? false,
     );
   }
