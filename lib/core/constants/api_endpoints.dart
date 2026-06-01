@@ -6,7 +6,7 @@ class ApiEndpoints {
   //   → Mở cmd/terminal, gõ: ipconfig  → lấy dòng "IPv4 Address"
   // Android Emulator: để nguyên 10.0.2.2
   // ───────────────────────────────────────────────────────────────────
-  static const String baseUrl = 'http://192.168.43.150:5161';
+  static const String baseUrl = 'http://192.168.2.15:5161';
   static final String notificationHub = '$baseUrl/notificationHub';
 
   // Auth
