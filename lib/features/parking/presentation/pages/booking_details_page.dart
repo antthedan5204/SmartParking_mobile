@@ -348,29 +348,47 @@ class BookingDetailsPage extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  if (booking.penaltyFee > 0) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          l10n.translate('penaltyFee'),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        Text(
-                          '${NumberFormat.decimalPattern().format(booking.penaltyFee)} ${l10n.translate('currencyShort')}',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.danger,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  Builder(
+                    builder: (context) {
+                      double displayPenaltyFee = booking.penaltyFee;
+                      if (displayPenaltyFee == 0 && booking.status == BookingStatus.checkedIn) {
+                        final localEnd = booking.endTime.toLocal();
+                        final overtimeMinutes = DateTime.now().difference(localEnd).inMinutes;
+                        if (overtimeMinutes > 10) {
+                          displayPenaltyFee = (overtimeMinutes * 1000).toDouble();
+                        }
+                      }
+                      
+                      if (displayPenaltyFee > 0) {
+                        return Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  l10n.translate('penaltyFee'),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  '${NumberFormat.decimalPattern().format(displayPenaltyFee)} ${l10n.translate('currencyShort')}',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   if (booking.extensionFee > 0) ...[
                     const SizedBox(height: 12),
                     Row(
@@ -394,26 +412,43 @@ class BookingDetailsPage extends ConsumerWidget {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.translate('totalAmount'),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        '${NumberFormat.decimalPattern().format(booking.totalPrice + booking.penaltyFee + booking.extensionFee)} ${l10n.translate('currencyShort')}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
+                  Builder(
+                    builder: (context) {
+                      double displayPenaltyFee = booking.penaltyFee;
+                      if (displayPenaltyFee == 0 && booking.status == BookingStatus.checkedIn) {
+                        final localEnd = booking.endTime.toLocal();
+                        final overtimeMinutes = DateTime.now().difference(localEnd).inMinutes;
+                        if (overtimeMinutes > 10) {
+                          displayPenaltyFee = (overtimeMinutes * 1000).toDouble();
+                        }
+                      }
+                      
+                      return Column(
+                        children: [
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                l10n.translate('totalAmount'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                '${NumberFormat.decimalPattern().format(booking.totalPrice + displayPenaltyFee + booking.extensionFee)} ${l10n.translate('currencyShort')}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
