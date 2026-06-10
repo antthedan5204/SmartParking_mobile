@@ -474,5 +474,10 @@
   "penaltyFee": "Phí quá giờ",
   "extensionFee": "Phí gia hạn",
   "openQrBtn": "Mở QR Check-in",
-  "directions": "Chỉ đường"
+  "directions": "Chỉ đường",
+  "newTimeMustBeAfterCurrentTime": "Giờ ra mới phải sau giờ kết thúc hiện tại!",
+  "selectNewCheckoutTime": "Chọn giờ ra mới",
+  "estimatedCheckoutTime": "Giờ ra dự kiến",
+  "extendedDuration": "Thời gian gia hạn thêm",
+  "minutesAbbr": "phút"
 }

@@ -474,5 +474,10 @@
   "penaltyFee": "Penalty Fee",
   "extensionFee": "Extension Fee",
   "openQrBtn": "Open QR Check-in",
-  "directions": "Directions"
+  "directions": "Directions",
+  "newTimeMustBeAfterCurrentTime": "New end time must be after current end time!",
+  "selectNewCheckoutTime": "Select new checkout time",
+  "estimatedCheckoutTime": "Estimated checkout time",
+  "extendedDuration": "Extended duration",
+  "minutesAbbr": "mins"
 }

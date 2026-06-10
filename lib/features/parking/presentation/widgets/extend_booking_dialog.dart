@@ -57,10 +57,10 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Giờ ra mới phải sau giờ kết thúc hiện tại!',
-                style: TextStyle(color: Colors.white),
+                l10n.translate('newTimeMustBeAfterCurrentTime'),
+                style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: Colors.red,
             ),
@@ -97,7 +97,7 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Chọn giờ ra mới',
+              l10n.translate('selectNewCheckoutTime'),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -121,7 +121,7 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Giờ ra dự kiến',
+                          l10n.translate('estimatedCheckoutTime'),
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -165,6 +165,19 @@ class _ExtendBookingDialogState extends ConsumerState<ExtendBookingDialog> {
             ),
 
             const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(l10n.translate('extendedDuration')),
+                Text(
+                  '$extraMinutes ${l10n.translate('minutesAbbr')}',
+                  style: AppTextStyles.subtitle2.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
