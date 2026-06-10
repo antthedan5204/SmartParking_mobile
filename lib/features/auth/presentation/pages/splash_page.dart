@@ -79,30 +79,37 @@ class _SplashPageState extends ConsumerState<SplashPage>
                         children: [
                           // Logo Container
                           Container(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(51), // opacity 0.2
-                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(32),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withAlpha(25),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
+                                  color: Colors.black.withAlpha(40),
+                                  blurRadius: 30,
+                                  offset: const Offset(0, 15),
                                 ),
                               ],
                             ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              width: 120,
-                              height: 120,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback nếu chưa copy file hoặc lỗi
-                                return const Icon(
-                                  Icons.local_parking_rounded,
-                                  size: 100,
-                                  color: Colors.white,
-                                );
-                              },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(28),
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 140,
+                                height: 140,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const SizedBox(
+                                    width: 140,
+                                    height: 140,
+                                    child: Icon(
+                                      Icons.local_parking_rounded,
+                                      size: 80,
+                                      color: Color(0xFF1976D2),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),

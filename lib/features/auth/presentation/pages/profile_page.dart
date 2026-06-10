@@ -39,7 +39,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final user = ref.read(authProvider).user;
     if (user == null) return;
 
-    final success = await ref.read(authProvider.notifier).updateProfile(
+    final success = await ref
+        .read(authProvider.notifier)
+        .updateProfile(
           id: user.id,
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
@@ -50,14 +52,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).translate('updateSuccess')),
+            content: Text(
+              AppLocalizations.of(context).translate('updateSuccess'),
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
         final errorKey = ref.read(authProvider).errorMessage;
-        final error = errorKey != null ? AppLocalizations.of(context).translate(errorKey) : AppLocalizations.of(context).translate('updateFailed');
+        final error = errorKey != null
+            ? AppLocalizations.of(context).translate(errorKey)
+            : AppLocalizations.of(context).translate('updateFailed');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error),
@@ -88,30 +94,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-                  _buildSectionHeader(AppLocalizations.of(context).translate('personalInfo')),
+                  _buildSectionHeader(
+                    AppLocalizations.of(context).translate('personalInfo'),
+                  ),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildProfileItem(
-                          label: AppLocalizations.of(context).translate('fullName'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('fullName'),
                           controller: _nameController,
                           icon: Icons.person_rounded,
                           enabled: _isEditing,
-                          color: const Color(0xFF1E293B), // Unified color, no background
+                          color: const Color(
+                            0xFF1E293B,
+                          ), // Unified color, no background
                         ),
                         _buildDivider(),
                         _buildProfileItem(
-                          label: AppLocalizations.of(context).translate('phone'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('phone'),
                           controller: _phoneController,
                           icon: Icons.phone_android_rounded,
                           enabled: _isEditing,
                           keyboardType: TextInputType.phone,
-                          color: const Color(0xFF1E293B), // Unified color, no background
+                          color: const Color(
+                            0xFF1E293B,
+                          ), // Unified color, no background
                         ),
                         _buildDivider(),
                         _buildReadOnlyItem(
-                          label: AppLocalizations.of(context).translate('email'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('email'),
                           value: user?.email ?? '',
                           icon: Icons.alternate_email_rounded,
                           color: const Color(0xFF1E293B),
@@ -121,13 +139,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 32),
-                  _buildSectionHeader(AppLocalizations.of(context).translate('vehicleAndSecurity')),
+                  _buildSectionHeader(
+                    AppLocalizations.of(
+                      context,
+                    ).translate('vehicleAndSecurity'),
+                  ),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildSettingsAction(
-                          label: AppLocalizations.of(context).translate('manageLicensePlates'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('manageLicensePlates'),
                           icon: Icons.directions_car_filled_rounded,
                           color: const Color(0xFF6366F1),
                           onTap: () => context.push('/vehicles'),
@@ -141,7 +165,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         _buildDivider(),
                         _buildSettingsAction(
-                          label: AppLocalizations.of(context).translate('changePassword'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('changePassword'),
                           icon: Icons.lock_person_rounded,
                           color: const Color(0xFFEF4444),
                           onTap: () => _showChangePasswordDialog(context, ref),
@@ -151,20 +177,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 32),
-                  _buildSectionHeader(AppLocalizations.of(context).translate('otherOptions')),
+                  _buildSectionHeader(
+                    AppLocalizations.of(context).translate('otherOptions'),
+                  ),
                   const SizedBox(height: 12),
                   _buildSectionCard(
                     child: Column(
                       children: [
                         _buildSettingsAction(
-                          label: AppLocalizations.of(context).translate('languageSettings'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('languageSettings'),
                           icon: Icons.translate_rounded,
                           color: const Color(0xFF1E293B),
                           onTap: () => _showLanguageSelector(context, ref),
                         ),
                         _buildDivider(),
                         _buildSettingsAction(
-                          label: AppLocalizations.of(context).translate('helpCenter'),
+                          label: AppLocalizations.of(
+                            context,
+                          ).translate('helpCenter'),
                           icon: Icons.help_outline_rounded,
                           color: const Color(0xFF1E293B),
                           onTap: () {
@@ -176,12 +208,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 40),
-                  
+
                   if (_isEditing)
                     _buildActionButtons(context, isLoading)
                   else
                     _buildEditButton(context),
-                    
+
                   const SizedBox(height: 20),
                   _buildLogoutButton(context, ref),
                   const SizedBox(height: 100),
@@ -202,7 +234,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       backgroundColor: const Color(0xFF0F172A),
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+        stretchModes: const [StretchMode.zoomBackground],
         background: Stack(
           fit: StackFit.expand,
           children: [
@@ -246,7 +278,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundColor: Color(0xFF1E293B),
-                          child: Icon(Icons.person_rounded, size: 50, color: Colors.white70),
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 50,
+                            color: Colors.white70,
+                          ),
                         ),
                       ),
                     ),
@@ -256,7 +292,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         color: Color(0xFF10B981),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check, size: 14, color: Colors.white),
+                      child: const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -271,7 +311,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -291,8 +334,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ),
     );
   }
-
-
 
   Widget _buildSectionHeader(String title) {
     return Text(
@@ -355,15 +396,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   controller: controller,
                   enabled: enabled,
                   keyboardType: keyboardType,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: enabled ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+                    color: Color(0xFF1E293B),
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
                     contentPadding: EdgeInsets.only(top: 4, bottom: 4),
                     border: InputBorder.none,
+                    filled: false,
                   ),
                 ),
               ],
@@ -439,7 +481,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Color(0xFF94A3B8),
+            ),
           ],
         ),
       ),
@@ -477,7 +523,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ),
@@ -491,9 +539,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: SizedBox(
             height: 56,
             child: OutlinedButton(
-              onPressed: isLoading ? null : () => setState(() => _isEditing = false),
+              onPressed: isLoading
+                  ? null
+                  : () => setState(() => _isEditing = false),
               style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
               ),
               child: Text(
@@ -516,12 +568,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: isLoading
-                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : Text(
-                      AppLocalizations.of(context).translate('save').toUpperCase(),
+                      AppLocalizations.of(
+                        context,
+                      ).translate('save').toUpperCase(),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),
@@ -537,7 +600,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       height: 56,
       child: TextButton.icon(
         onPressed: () => _showLogoutDialog(context, ref),
-        icon: const Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
+        icon: const Icon(
+          Icons.logout_rounded,
+          size: 20,
+          color: Color(0xFFEF4444),
+        ),
         label: Text(
           AppLocalizations.of(context).translate('logoutAccount'),
           style: TextStyle(
@@ -547,7 +614,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ),
         style: TextButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
     );
@@ -562,13 +631,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(AppLocalizations.of(context).translate('confirmAction'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Text(AppLocalizations.of(context).translate('confirmPasswordChange')),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            AppLocalizations.of(context).translate('confirmAction'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            AppLocalizations.of(context).translate('confirmPasswordChange'),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(AppLocalizations.of(context).translate('decline'), style: const TextStyle(color: Color(0xFF64748B))),
+              child: Text(
+                AppLocalizations.of(context).translate('decline'),
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -594,14 +673,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(AppLocalizations.of(context).translate('otpSent')),
+                        content: Text(
+                          AppLocalizations.of(context).translate('otpSent'),
+                        ),
                         backgroundColor: AppColors.success,
                       ),
                     );
-                    context.push('/reset-password', extra: {'email': user.email});
+                    context.push(
+                      '/reset-password',
+                      extra: {'email': user.email},
+                    );
                   } else {
                     final errorKey = ref.read(authProvider).errorMessage;
-                    final error = errorKey != null ? AppLocalizations.of(context).translate(errorKey) : AppLocalizations.of(context).translate('sendOtpFailed');
+                    final error = errorKey != null
+                        ? AppLocalizations.of(context).translate(errorKey)
+                        : AppLocalizations.of(
+                            context,
+                          ).translate('sendOtpFailed');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(error),
@@ -615,7 +703,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(AppLocalizations.of(context).translate('accept')),
             ),
@@ -631,13 +721,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(AppLocalizations.of(context).translate('confirmAction'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Text(AppLocalizations.of(context).translate('confirmLogout')),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            AppLocalizations.of(context).translate('confirmAction'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            AppLocalizations.of(context).translate('confirmLogout'),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(AppLocalizations.of(context).translate('later'), style: const TextStyle(color: Color(0xFF64748B))),
+              child: Text(
+                AppLocalizations.of(context).translate('later'),
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -649,9 +749,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 backgroundColor: const Color(0xFFEF4444),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: Text(AppLocalizations.of(context).translate('logout').toUpperCase()),
+              child: Text(
+                AppLocalizations.of(context).translate('logout').toUpperCase(),
+              ),
             ),
           ],
         ),
@@ -675,24 +779,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             children: [
               Text(
                 AppLocalizations.of(context).translate('selectLanguage'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 20),
               ListTile(
                 leading: const Icon(Icons.language),
-                title: Text(AppLocalizations.of(context).translate('vietnamese')),
-                trailing: currentLocale == 'vi' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                title: Text(
+                  AppLocalizations.of(context).translate('vietnamese'),
+                ),
+                trailing: currentLocale == 'vi'
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLocale(const Locale('vi'));
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLocale(const Locale('vi'));
                   Navigator.pop(context);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.language),
                 title: Text(AppLocalizations.of(context).translate('english')),
-                trailing: currentLocale == 'en' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                trailing: currentLocale == 'en'
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLocale(const Locale('en'));
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLocale(const Locale('en'));
                   Navigator.pop(context);
                 },
               ),

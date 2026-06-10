@@ -18,6 +18,7 @@ import 'select_slot_page.dart';
 
 import 'main_shell_page.dart';
 import '../providers/voice_booking_provider.dart';
+import '../../../../core/utils/map_utils.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -591,7 +592,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: () => context.go('/bookings'),
+                onPressed: () => context.push('/booking-details', extra: {'booking': booking}),
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
                   foregroundColor: Colors.white,
@@ -856,13 +857,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          l10n
-                              .translate('slotCountFormat')
-                              .replaceAll('{available}', available.toString())
-                              .replaceAll('{total}', total.toString()),
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
+                        Expanded(
+                          child: Text(
+                            l10n
+                                .translate('slotCountFormat')
+                                .replaceAll('{available}', available.toString())
+                                .replaceAll('{total}', total.toString()),
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -917,8 +922,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       builder: (context) => ParkingLotDetailsSheet(
         lot: lot,
         onNavigate: () {
-          // TODO: Implement map navigation
           Navigator.pop(context);
+          if (lot.latitude != null && lot.longitude != null) {
+            MapUtils.openExternalMap(lot.latitude!, lot.longitude!);
+          }
         },
         onPay: () {
           Navigator.pop(context);

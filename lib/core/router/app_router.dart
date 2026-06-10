@@ -16,9 +16,11 @@ import '../../features/parking/presentation/pages/notifications_page.dart';
 import '../../features/parking/presentation/pages/main_shell_page.dart';
 import '../../features/parking/presentation/pages/vehicle_management_page.dart';
 import '../../features/parking/presentation/pages/payment_success_page.dart';
+import '../../features/parking/presentation/pages/booking_details_page.dart';
 import '../../features/parking/domain/entities/booking.dart';
 import '../../features/parking/domain/entities/payment.dart';
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
+import '../../features/admin/presentation/pages/manager_notifications_page.dart';
 
 /// A [ChangeNotifier] that triggers GoRouter redirect re-evaluation
 /// without recreating the entire router instance.
@@ -224,6 +226,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/admin/notifications',
+        name: 'admin-notifications',
+        builder: (context, state) => const ManagerNotificationsPage(),
+      ),
+      GoRoute(
         path: '/help-center',
         name: 'help-center',
         builder: (context, state) => const HelpCenterPage(),
@@ -232,6 +239,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/vehicles',
         name: 'vehicles',
         builder: (context, state) => const VehicleManagementPage(),
+      ),
+      GoRoute(
+        path: '/booking-details',
+        name: 'booking-details',
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return BookingDetailsPage(booking: extras['booking'] as Booking);
+        },
       ),
       GoRoute(
         path: '/payment-success',

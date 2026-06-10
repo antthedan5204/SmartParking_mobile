@@ -33,10 +33,11 @@ class _AdminZonesContentState extends ConsumerState<AdminZonesContent> {
     final authState = ref.watch(authProvider);
     final isAdmin = authState.user?.isAdmin ?? false;
 
-    // Backend already filters lots by role:
-    // - Admin: returns all lots
-    // - Manager: returns only their assigned lots
-    final lots = parkingState.lots;
+    // Ensure client-side filtering for Managers (fallback if backend doesn't filter)
+    List<dynamic> lots = parkingState.lots;
+    if (!isAdmin && authState.user != null) {
+      lots = lots.where((lot) => lot.managerId == authState.user!.id).toList();
+    }
 
     return Column(
       children: [
@@ -77,7 +78,7 @@ class _AdminZonesContentState extends ConsumerState<AdminZonesContent> {
                       itemCount: lots.length,
                       itemBuilder: (context, index) {
                         final lot = lots[index];
-                        return _buildZoneItem(context, ref, lot, l10n);
+                        return _buildZoneItem(context, ref, lot, l10n, isAdmin);
                       },
                     ),
         ),
@@ -85,7 +86,7 @@ class _AdminZonesContentState extends ConsumerState<AdminZonesContent> {
     );
   }
 
-  Widget _buildZoneItem(BuildContext context, WidgetRef ref, dynamic lot, AppLocalizations l10n) {
+  Widget _buildZoneItem(BuildContext context, WidgetRef ref, dynamic lot, AppLocalizations l10n, bool isAdmin) {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -153,23 +154,24 @@ class _AdminZonesContentState extends ConsumerState<AdminZonesContent> {
                   style: AppTextStyles.subtitle2.copyWith(color: AppColors.primary),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => _showAddZoneDialog(context, ref, lot: lot),
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.info, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      onPressed: () => _deleteZone(context, ref, lot),
-                      icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
+                if (isAdmin)
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => _showAddZoneDialog(context, ref, lot: lot),
+                        icon: const Icon(Icons.edit_outlined, color: AppColors.info, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: () => _deleteZone(context, ref, lot),
+                        icon: const Icon(Icons.delete_outline, color: AppColors.danger, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ],

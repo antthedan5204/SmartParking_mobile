@@ -15,6 +15,8 @@ class BookingModel extends Booking {
     super.vehiclePlateNumber,
     super.penaltyFee,
     super.actualCheckoutTime,
+    super.extensionFee,
+    super.extensionTime,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,8 @@ class BookingModel extends Booking {
       status: _parseStatus(json['status']),
       totalPrice: ((json['totalPrice'] ?? 0) as num).toDouble(),
       penaltyFee: ((json['penaltyFee'] ?? json['PenaltyFee'] ?? 0) as num).toDouble(),
+      extensionFee: ((json['extensionFee'] ?? json['ExtensionFee'] ?? 0) as num).toDouble(),
+      extensionTime: json['extensionTime'] ?? json['ExtensionTime'],
       actualCheckoutTime: (json['actualCheckoutTime'] ?? json['ActualCheckoutTime']) != null 
           ? _parseDateTime(json['actualCheckoutTime'] ?? json['ActualCheckoutTime']) 
           : null,

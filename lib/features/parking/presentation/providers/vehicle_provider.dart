@@ -38,8 +38,12 @@ class VehicleNotifier extends StateNotifier<VehicleState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     final result = await repository.getUserVehicles();
     result.fold(
-      (failure) => state = state.copyWith(isLoading: false, errorMessage: failure.message),
-      (vehicles) => state = state.copyWith(isLoading: false, vehicles: vehicles),
+      (failure) => state = state.copyWith(
+        isLoading: false,
+        errorMessage: failure.message,
+      ),
+      (vehicles) =>
+          state = state.copyWith(isLoading: false, vehicles: vehicles),
     );
   }
 
@@ -54,7 +58,7 @@ class VehicleNotifier extends StateNotifier<VehicleState> {
       model: model,
       color: color,
     );
-    
+
     return result.fold(
       (failure) {
         state = state.copyWith(isLoading: false, errorMessage: failure.message);
@@ -70,20 +74,26 @@ class VehicleNotifier extends StateNotifier<VehicleState> {
     );
   }
 
-  Future<void> deleteVehicle(int id) async {
+  Future<bool> deleteVehicle(int id) async {
     final result = await repository.deleteVehicle(id);
-    result.fold(
-      (failure) => state = state.copyWith(errorMessage: failure.message),
+    return result.fold(
+      (failure) {
+        state = state.copyWith(errorMessage: failure.message);
+        return false;
+      },
       (_) {
         state = state.copyWith(
           vehicles: state.vehicles.where((v) => v.id != id).toList(),
         );
+        return true;
       },
     );
   }
 }
 
-final vehicleProvider = StateNotifierProvider<VehicleNotifier, VehicleState>((ref) {
+final vehicleProvider = StateNotifierProvider<VehicleNotifier, VehicleState>((
+  ref,
+) {
   final repository = ref.read(parkingRepositoryProvider);
   return VehicleNotifier(repository);
 });

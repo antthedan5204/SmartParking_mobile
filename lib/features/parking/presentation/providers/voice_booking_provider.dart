@@ -102,6 +102,21 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) {
+        if (state.status == VoiceBookingStateStatus.speaking) {
+          state = state.copyWith(status: VoiceBookingStateStatus.idle);
+        }
+      }
+    });
+    _flutterTts.setCancelHandler(() {
+      if (mounted) {
+        if (state.status == VoiceBookingStateStatus.speaking) {
+          state = state.copyWith(status: VoiceBookingStateStatus.idle);
+        }
+      }
+    });
   }
 
   Future<void> _speak(String text) async {
@@ -110,6 +125,8 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
   }
 
   Future<void> startListening() async {
+    await _flutterTts.stop();
+    
     if (!_speechEnabled && !_isInitializing) {
       _isInitializing = true;
       try {
@@ -155,6 +172,8 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
 
     state = state.copyWith(status: VoiceBookingStateStatus.listening);
     await _speechToText.listen(
+      localeId: 'vi_VN',
+      pauseFor: const Duration(seconds: 3),
       onResult: (result) {
         state = state.copyWith(text: result.recognizedWords);
         // Only process when user stops speaking and result is final
@@ -179,6 +198,10 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
   final List<Map<String, dynamic>> _chatHistory = [];
 
   Future<void> _processVoiceCommand(String command) async {
+    if (state.status == VoiceBookingStateStatus.analyzing) {
+      return; // Prevent duplicate concurrent calls (e.g. from both onResult and stopListening)
+    }
+    
     if (command.isEmpty) {
       state = state.copyWith(
         status: VoiceBookingStateStatus.error,
@@ -216,6 +239,7 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
       for (var toolCall in toolCalls) {
         final toolName = toolCall['function']['name'];
         final argsStr = toolCall['function']['arguments'];
+        final toolCallId = toolCall['id'];
         
         Map<String, dynamic> args = {};
         try {
@@ -224,12 +248,19 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
           // Parse error
         }
 
-        if (toolName == 'search_lots') {
-          await _handleSearchLots(args, toolCall['id']);
-        } else if (toolName == 'select_lot') {
-          await _handleSelectLot(args, toolCall['id']);
-        } else if (toolName == 'set_time') {
-          await _handleSetTime(args, toolCall['id']);
+        try {
+          if (toolName == 'search_lots') {
+            await _handleSearchLots(args, toolCallId);
+          } else if (toolName == 'select_lot') {
+            await _handleSelectLot(args, toolCallId);
+          } else if (toolName == 'set_time') {
+            await _handleSetTime(args, toolCallId);
+          } else {
+            _addSystemToolResponse(toolCallId, "Không hỗ trợ chức năng này");
+          }
+        } catch (e) {
+          debugPrint("Lỗi khi xử lý tool $toolName: $e");
+          _addSystemToolResponse(toolCallId, "Đã xảy ra lỗi khi xử lý chức năng này: $e");
         }
       }
       
@@ -374,10 +405,17 @@ class VoiceBookingNotifier extends StateNotifier<VoiceBookingState> {
     } else if (state.suggestedLots.isNotEmpty && state.matchedLot == null) {
       // Đã tìm thấy các bãi đỗ, cần người dùng chọn
       state = state.copyWith(step: VoiceBookingStep.selectingLot, status: VoiceBookingStateStatus.idle);
+      
+      String lotDetails = "";
+      for (int i = 0; i < state.suggestedLots.length; i++) {
+        final lot = state.suggestedLots[i];
+        lotDetails += "Bãi số ${i + 1} là ${lot.name}, giá ${lot.pricePerHour.toInt()} đồng 1 giờ. ";
+      }
+
       if (state.startTime != null && state.endTime != null) {
-        await _speak("Tôi đã nhận thời gian đỗ. Tôi tìm thấy ${state.suggestedLots.length} bãi đỗ xe phù hợp gần đó. Bạn chọn bãi số mấy?");
+        await _speak("Tôi đã nhận thời gian đỗ. Tôi tìm thấy ${state.suggestedLots.length} bãi đỗ. $lotDetails Bạn chọn bãi số mấy?");
       } else {
-        await _speak("Tôi tìm thấy ${state.suggestedLots.length} bãi đỗ xe phù hợp. Bạn muốn chọn bãi số mấy?");
+        await _speak("Tôi tìm thấy ${state.suggestedLots.length} bãi đỗ. $lotDetails Bạn muốn chọn bãi số mấy?");
       }
     } else {
       // Không tìm thấy gì cả

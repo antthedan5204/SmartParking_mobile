@@ -67,12 +67,32 @@ class _LoginPageState extends ConsumerState<LoginPage>
       final user = authState.user;
 
       if (user != null) {
-        if (user.isAdmin ||
-            user.isManager ||
-            (_isAdmin && user.role == 'User')) {
-          context.go('/admin');
-        } else {
+        if (!_isAdmin) {
+          // Tab Người dùng
+          if (user.role == 'Admin' || user.role == 'Manager') {
+            ref.read(authProvider.notifier).logout();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tài khoản này là Quản trị. Vui lòng chọn tab Quản trị!'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+            return;
+          }
           context.go('/home');
+        } else {
+          // Tab Quản trị
+          if (user.role == 'User') {
+            ref.read(authProvider.notifier).logout();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Bạn không có quyền quản trị. Vui lòng đăng nhập ở tab Người dùng!'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+            return;
+          }
+          context.go('/admin');
         }
       }
     }
@@ -82,6 +102,19 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final success = await ref.read(authProvider.notifier).loginWithGoogle();
 
     if (mounted && success) {
+      final authState = ref.read(authProvider);
+      final user = authState.user;
+
+      if (user != null && (user.role == 'Admin' || user.role == 'Manager')) {
+        ref.read(authProvider.notifier).logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tài khoản Quản trị không thể đăng nhập bằng Google tại đây!'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
       context.go('/home');
     }
   }

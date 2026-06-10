@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
@@ -171,19 +172,21 @@ class AdminBookingsContent extends ConsumerWidget {
     final isCheckedIn = booking.status == BookingStatus.checkedIn;
     final isOvertime = isCheckedIn && isExpired;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GestureDetector(
+      onTap: () => context.push('/booking-details', extra: {'booking': booking}),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: Column(
         children: [
           Padding(
@@ -245,13 +248,13 @@ class AdminBookingsContent extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.person_outline, size: 14, color: AppColors.textSecondary),
+                          const Icon(Icons.local_parking_rounded, size: 14, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
-                          Text('${l10n.translate('guestPrefix')}${booking.userId}', style: AppTextStyles.caption),
+                          Text('${l10n.translate('slotPrefix')}${booking.slotNumber ?? l10n.translate('unknown')}', style: AppTextStyles.caption),
                           const SizedBox(width: 12),
                           const Icon(Icons.directions_car_filled_outlined, size: 14, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
-                          Text('${l10n.translate('vehiclePrefix')}${booking.vehicleId}', style: AppTextStyles.caption),
+                          Text(booking.vehiclePlateNumber ?? l10n.translate('unknown'), style: AppTextStyles.caption),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -399,8 +402,9 @@ class AdminBookingsContent extends ConsumerWidget {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _handleCheckIn(BuildContext context, WidgetRef ref, Booking booking, AppLocalizations l10n) async {
     final success = await ref.read(bookingManagementProvider.notifier).checkInBooking(booking.id);

@@ -15,7 +15,9 @@ import '../widgets/admin_zones_content.dart';
 import '../widgets/revenue_chart.dart';
 import '../widgets/occupancy_chart.dart';
 import '../widgets/admin_bookings_content.dart';
+import '../widgets/admin_qr_scanner_content.dart';
 import '../providers/booking_management_provider.dart';
+import 'manager_notifications_page.dart';
 
 class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({super.key});
@@ -79,6 +81,49 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                       ),
                       Row(
                         children: [
+                          // Notification Icon (Only for Manager)
+                          if (authState.user?.isManager ?? false) ...[
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final unreadCount = ref.watch(managerNotificationsProvider.notifier).unreadCount;
+                                return Stack(
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        context.push('/admin/notifications');
+                                      },
+                                      icon: const Icon(
+                                        Icons.notifications_none_outlined,
+                                        color: AppColors.textOnDark,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    if (unreadCount > 0)
+                                      Positioned(
+                                        right: 8,
+                                        top: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.redAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(
+                                            unreadCount > 9 ? '9+' : unreadCount.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 4),
+                          ],
                           // Language toggle
                           GestureDetector(
                             onTap: () => ref.read(localeProvider.notifier).toggleLocale(),
@@ -100,7 +145,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           IconButton(
                             onPressed: () {
                               ref.read(authProvider.notifier).logout();
@@ -138,6 +183,15 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                           isSelected: dashboardState.selectedTab == 1,
                           onTap: () =>
                               ref.read(adminDashboardProvider.notifier).setTab(1),
+                        ),
+                        _buildAdminTab(
+                          icon: Icons.qr_code_scanner_rounded,
+                          label: l10n.translate('scanQr') ?? 'Quét QR',
+                          isSelected: dashboardState.selectedTab == 2,
+                          onTap: () {
+                            ref.read(adminDashboardProvider.notifier).setTab(2);
+                            ref.read(bookingManagementProvider.notifier).loadBookings();
+                          },
                         ),
                         if (authState.user?.isAdmin ?? false)
                           _buildAdminTab(
@@ -181,15 +235,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                   ? const Center(
                       child: CircularProgressIndicator(color: AppColors.primary),
                     )
-                  : (dashboardState.selectedTab == 3)
-                      ? const AdminStaffContent()
-                      : (dashboardState.selectedTab == 4)
-                          ? const AdminBookingsContent(isHistoryView: false)
-                          : (dashboardState.selectedTab == 5)
-                              ? const AdminBookingsContent(isHistoryView: true)
-                              : (dashboardState.selectedTab == 1)
-                                  ? const AdminZonesContent()
-                                  : _buildDashboardContent(context, ref, dashboardState, l10n),
+                  : (dashboardState.selectedTab == 2)
+                      ? const AdminQrScannerContent()
+                      : (dashboardState.selectedTab == 3)
+                          ? const AdminStaffContent()
+                          : (dashboardState.selectedTab == 4)
+                              ? const AdminBookingsContent(isHistoryView: false)
+                              : (dashboardState.selectedTab == 5)
+                                  ? const AdminBookingsContent(isHistoryView: true)
+                                  : (dashboardState.selectedTab == 1)
+                                      ? const AdminZonesContent()
+                                      : _buildDashboardContent(context, ref, dashboardState, l10n),
             ),
           ],
         ),

@@ -47,50 +47,78 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      // 1. Always load parking lots fresh (backend filters by role automatically)
+      // 1. Always load parking lots fresh
       await ref.read(parkingLotsProvider.notifier).loadParkingLots();
-      final lots = ref.read(parkingLotsProvider).lots;
-      
-      debugPrint('[Dashboard] total lots from backend: ${lots.length}');
+      final allLots = ref.read(parkingLotsProvider).lots;
 
-      // 2. Get bookings
-      final result = await ref.read(getAllBookingsUseCaseProvider)();
-      List<Booking> allBookings = result.fold(
-        (failure) {
-          state = state.copyWith(errorMessage: failure.message);
-          return [];
-        },
-        (b) => b,
-      );
+      debugPrint('[Dashboard] total lots from backend: ${allLots.length}');
 
       final authState = ref.read(authProvider);
       final isAdmin = authState.user?.isAdmin ?? false;
+
+      // 1b. Filter lots for manager
+      List<ParkingLot> managedLots = allLots;
+      if (!isAdmin && authState.user != null) {
+        managedLots = allLots
+            .where((lot) => lot.managerId == authState.user!.id)
+            .toList();
+      }
+
+      // 2. Get bookings
+      final result = await ref.read(getAllBookingsUseCaseProvider)();
+      List<Booking> allBookings = result.fold((failure) {
+        state = state.copyWith(errorMessage: failure.message);
+        return [];
+      }, (b) => b);
+
       if (!isAdmin) {
-        final managerLotNames = lots.map((l) => l.name).toSet();
-        allBookings = allBookings.where((b) => managerLotNames.contains(b.lotName)).toList();
+        final managerLotNames = managedLots.map((l) => l.name).toSet();
+        allBookings = allBookings
+            .where((b) => managerLotNames.contains(b.lotName))
+            .toList();
       }
 
       final now = DateTime.now();
       final last7Days = now.subtract(const Duration(days: 7));
 
-      // 3. Calculate KPIs
-      final totalSlots = lots.fold<int>(0, (sum, lot) => sum + lot.totalSlots);
-      final availableSlots = lots.fold<int>(0, (sum, lot) => sum + (lot.availableSlots ?? 0));
-      final occupancyPercent = totalSlots > 0 ? ((totalSlots - availableSlots) / totalSlots) * 100 : 0.0;
+      // 3. Calculate KPIs based on managedLots
+      final totalSlots = managedLots.fold<int>(
+        0,
+        (sum, lot) => sum + lot.totalSlots,
+      );
+      final availableSlots = managedLots.fold<int>(
+        0,
+        (sum, lot) => sum + (lot.availableSlots ?? 0),
+      );
+      final occupancyPercent = totalSlots > 0
+          ? ((totalSlots - availableSlots) / totalSlots) * 100
+          : 0.0;
 
       // Revenue last 7 days (Confirmed & Completed bookings)
       // Backend already filters bookings by role, so use allBookings directly.
-      final recentBookings = allBookings.where((b) => 
-        (b.status == BookingStatus.completed || b.status == BookingStatus.confirmed) && 
-        b.startTime.isAfter(last7Days)).toList();
-      
-      final revenue7Days = recentBookings.fold<double>(0, (sum, b) => sum + b.totalPrice);
+      final recentBookings = allBookings
+          .where(
+            (b) =>
+                (b.status == BookingStatus.completed ||
+                    b.status == BookingStatus.confirmed) &&
+                b.startTime.isAfter(last7Days),
+          )
+          .toList();
+
+      final revenue7Days = recentBookings.fold<double>(
+        0,
+        (sum, b) => sum + b.totalPrice,
+      );
 
       // 4. Generate real Daily Stats
       final dailyStats = _calculateDailyStats(allBookings, now);
-      
+
       // 5. Generate real Hourly Occupancy (based on today's bookings)
-      final hourlyOccupancy = _calculateHourlyOccupancy(allBookings, now, lots);
+      final hourlyOccupancy = _calculateHourlyOccupancy(
+        allBookings,
+        now,
+        managedLots,
+      );
 
       final stats = DashboardStats(
         totalSlots: totalSlots,
@@ -103,10 +131,7 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
 
       state = state.copyWith(isLoading: false, stats: stats);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
@@ -117,8 +142,16 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
   List<DailyStats> _calculateDailyStats(List<Booking> bookings, DateTime now) {
     final Map<String, double> revenuePerDay = {};
     final Map<String, List<double>> occupancyPerDay = {};
-    
-    final weekdayMap = {1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN'};
+
+    final weekdayMap = {
+      1: 'T2',
+      2: 'T3',
+      3: 'T4',
+      4: 'T5',
+      5: 'T6',
+      6: 'T7',
+      7: 'CN',
+    };
 
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
@@ -131,7 +164,8 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
       if (b.startTime.isAfter(now.subtract(const Duration(days: 7)))) {
         final dayLabel = weekdayMap[b.startTime.weekday]!;
         if (revenuePerDay.containsKey(dayLabel)) {
-          if (b.status == BookingStatus.completed || b.status == BookingStatus.confirmed) {
+          if (b.status == BookingStatus.completed ||
+              b.status == BookingStatus.confirmed) {
             revenuePerDay[dayLabel] = revenuePerDay[dayLabel]! + b.totalPrice;
           }
           // Simple occupancy calculation
@@ -142,25 +176,30 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
 
     return revenuePerDay.entries.map((e) {
       // Mock occupancy for now as full calculation requires knowing total capacity over time
-      final mockOcc = 40.0 + (e.value > 0 ? 10.0 : 0.0) + (DateTime.now().millisecond % 20); 
-      return DailyStats(
-        day: e.key,
-        revenue: e.value,
-        occupancy: mockOcc,
-      );
+      final mockOcc =
+          40.0 + (e.value > 0 ? 10.0 : 0.0) + (DateTime.now().millisecond % 20);
+      return DailyStats(day: e.key, revenue: e.value, occupancy: mockOcc);
     }).toList();
   }
 
-  List<HourlyOccupancy> _calculateHourlyOccupancy(List<Booking> bookings, DateTime now, List<ParkingLot> lots) {
+  List<HourlyOccupancy> _calculateHourlyOccupancy(
+    List<Booking> bookings,
+    DateTime now,
+    List<ParkingLot> lots,
+  ) {
     final List<int> slotsOccupiedPerHour = List.filled(24, 0);
-    final todayBookings = bookings.where((b) => 
-      b.startTime.year == now.year && b.startTime.month == now.month && b.startTime.day == now.day);
+    final todayBookings = bookings.where(
+      (b) =>
+          b.startTime.year == now.year &&
+          b.startTime.month == now.month &&
+          b.startTime.day == now.day,
+    );
 
     for (var b in todayBookings) {
       int startHour = b.startTime.hour;
       int endHour = b.endTime.hour;
       if (b.endTime.day > b.startTime.day) endHour = 23;
-      
+
       for (int h = startHour; h <= endHour; h++) {
         slotsOccupiedPerHour[h]++;
       }
@@ -169,16 +208,15 @@ class AdminDashboardNotifier extends StateNotifier<AdminDashboardState> {
     final totalSlots = lots.fold<int>(0, (sum, lot) => sum + lot.totalSlots);
 
     return List.generate(24, (i) {
-      final occ = totalSlots > 0 ? (slotsOccupiedPerHour[i] / totalSlots) * 100 : 0.0;
-      return HourlyOccupancy(
-        hour: i,
-        occupancy: occ,
-      );
+      final occ = totalSlots > 0
+          ? (slotsOccupiedPerHour[i] / totalSlots) * 100
+          : 0.0;
+      return HourlyOccupancy(hour: i, occupancy: occ);
     });
   }
 }
 
 final adminDashboardProvider =
     StateNotifierProvider<AdminDashboardNotifier, AdminDashboardState>((ref) {
-  return AdminDashboardNotifier(ref);
-});
+      return AdminDashboardNotifier(ref);
+    });

@@ -1,4 +1,11 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -382,25 +389,160 @@ ${l10n.translate('thanksForUsingSmartPark')}
   }
 
   Future<void> _downloadInvoice(BuildContext context, AppLocalizations l10n) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.translate('generatingInvoice')),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-    
-    // Giả lập tải về thành công
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (context.mounted) {
+    try {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.translate('saveInvoiceSuccess')),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
+          content: Text(l10n.translate('generatingInvoice')),
+          duration: const Duration(seconds: 1),
         ),
       );
+
+      final pdfData = await _generatePdf(PdfPageFormat.a4, l10n);
+      final filename = 'HoaDon_SmartPark_${booking.id}.pdf';
+      String savePath;
+
+      if (Platform.isAndroid) {
+        // Try saving to public Downloads folder on Android
+        Directory? downloadDir = Directory('/storage/emulated/0/Download');
+        if (!await downloadDir.exists()) {
+          downloadDir = await getExternalStorageDirectory();
+        }
+        savePath = '${downloadDir?.path}/$filename';
+      } else {
+        // For iOS, save to Application Documents directory
+        final dir = await getApplicationDocumentsDirectory();
+        savePath = '${dir.path}/$filename';
+      }
+
+      final file = File(savePath);
+      try {
+        await file.writeAsBytes(pdfData);
+      } catch (e) {
+        // Fallback to app directory if permission denied
+        if (Platform.isAndroid) {
+          final fallbackDir = await getExternalStorageDirectory();
+          savePath = '${fallbackDir?.path}/$filename';
+          final fallbackFile = File(savePath);
+          await fallbackFile.writeAsBytes(pdfData);
+        } else {
+          rethrow;
+        }
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.translate('saveInvoiceSuccess')}\nĐã lưu tại: $savePath'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xuất PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+
+  Future<Uint8List> _generatePdf(PdfPageFormat format, AppLocalizations l10n) async {
+    final pdf = pw.Document(version: PdfVersion.pdf_1_5, compress: true);
+    final font = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontBlack = await PdfGoogleFonts.robotoBlack();
+
+    final dateFormat = DateFormat('HH:mm, dd/MM/yyyy');
+    final duration = booking.endTime.difference(booking.startTime);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('SMART PARK', style: pw.TextStyle(font: fontBlack, fontSize: 24, color: PdfColors.indigo)),
+                    pw.Text('${l10n.translate('billNo')} 00${booking.id}', style: pw.TextStyle(font: fontBold, fontSize: 14, color: PdfColors.grey700)),
+                  ]
+                )
+              ),
+              pw.SizedBox(height: 20),
+              pw.Center(
+                child: pw.Text(l10n.translate('invoiceTitle').toUpperCase(), style: pw.TextStyle(font: fontBlack, fontSize: 28, color: PdfColors.indigo900)),
+              ),
+              pw.Center(
+                child: pw.Text(l10n.translate('paymentSuccessTitle'), style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.green)),
+              ),
+              pw.SizedBox(height: 30),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              pw.Text(l10n.translate('parkingInfoTitle'), style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.indigo800)),
+              pw.SizedBox(height: 10),
+              _buildPdfRow(l10n.translate('parkingLotLabel'), booking.lotName ?? 'Smart Park', font, fontBold),
+              _buildPdfRow(l10n.translate('slotLabel'), '${l10n.translate('slotPrefix') ?? 'Ô số '}${booking.slotId}', font, fontBold),
+              _buildPdfRow(l10n.translate('licensePlateLabel'), booking.vehiclePlateNumber ?? 'N/A', font, fontBold),
+              
+              pw.SizedBox(height: 20),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              
+              pw.Text(l10n.translate('timeTitle'), style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.indigo800)),
+              pw.SizedBox(height: 10),
+              _buildPdfRow(l10n.translate('timeIn'), dateFormat.format(booking.startTime.toLocal()), font, fontBold),
+              _buildPdfRow(l10n.translate('timeOut'), dateFormat.format(booking.endTime.toLocal()), font, fontBold),
+              _buildPdfRow('Thời lượng', '${duration.inHours} ${l10n.translate('hourText')}', font, fontBold),
+
+              pw.SizedBox(height: 20),
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+
+              pw.Text(l10n.translate('paymentDetailsTitle'), style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.indigo800)),
+              pw.SizedBox(height: 10),
+              _buildPdfRow(l10n.translate('parkingFeeLabel'), '${payment.amount.toStringAsFixed(0)} ${l10n.translate('currencyShort')}', font, fontBold),
+              _buildPdfRow(l10n.translate('discount'), '-0 ${l10n.translate('currencyShort')}', font, fontBold, valueColor: PdfColors.red),
+              pw.SizedBox(height: 5),
+              _buildPdfRow(l10n.translate('totalAmount'), '${payment.amount.toStringAsFixed(0)} ${l10n.translate('currencyShort')}', font, fontBlack, isTotal: true),
+
+              pw.Spacer(),
+              pw.Divider(),
+              pw.Center(
+                child: pw.Text(l10n.translate('thanksForUsingSmartPark'), style: pw.TextStyle(font: font, fontSize: 12, color: PdfColors.grey600)),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Center(
+                child: pw.Text('Ngày in: ${DateFormat('HH:mm:ss, dd/MM/yyyy').format(DateTime.now())}', style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey500)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  pw.Widget _buildPdfRow(String label, String value, pw.Font font, pw.Font valueFont, {PdfColor? valueColor, bool isTotal = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: pw.TextStyle(font: font, fontSize: isTotal ? 16 : 14, color: isTotal ? PdfColors.indigo900 : PdfColors.grey700)),
+          pw.Text(value, style: pw.TextStyle(font: valueFont, fontSize: isTotal ? 16 : 14, color: valueColor ?? (isTotal ? PdfColors.indigo900 : PdfColors.black))),
+        ],
+      ),
+    );
   }
 
   Widget _buildActionIcon(IconData icon) {

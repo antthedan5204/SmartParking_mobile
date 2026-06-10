@@ -57,5 +57,7 @@
 		<string>comgooglemaps</string>
 		<string>iosamaps</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Ứng dụng cần sử dụng camera để quét mã QR check-in xe.</string>
 </dict>
 </plist>

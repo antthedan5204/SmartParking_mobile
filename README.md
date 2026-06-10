@@ -67,20 +67,6 @@
 
 ---
 
-## 📸 Hình ảnh minh họa (Screenshots)
-
-*(Bạn hãy thay thế các link ảnh dưới đây bằng ảnh chụp màn hình thật của ứng dụng)*
-
-<p align="center">
-  <img src="https://via.placeholder.com/250x500.png?text=Home+Screen" width="220" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="https://via.placeholder.com/250x500.png?text=AI+Voice+Booking" width="220" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="https://via.placeholder.com/250x500.png?text=QR+Scanner" width="220" />
-</p>
-
----
-
 ## 🤝 Đóng góp (Contributing)
 Dự án được xây dựng và phát triển để phục vụ Đồ án Tốt nghiệp ngành CNTT. Mọi ý kiến đóng góp, báo cáo lỗi (issues) hoặc đề xuất cải tiến (pull requests) đều được hoan nghênh để sản phẩm ngày càng hoàn thiện.
 

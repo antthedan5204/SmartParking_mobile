@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
@@ -192,19 +193,21 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
       statusText = l10n.translate('statusCheckedIn');
     }
 
-    Widget card = Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    Widget card = GestureDetector(
+      onTap: () => context.push('/booking-details', extra: {'booking': booking}),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Column(
@@ -386,100 +389,13 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
                       },
                     ),
                   ],
-
-                  if (isConfirmed &&
-                      (canCancel || canExtend || isNearStart)) ...[
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        if (canCancel)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _handleCancel(booking, l10n),
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              label: Text(l10n.translate('cancelBooking')),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.danger,
-                                side: const BorderSide(color: AppColors.danger),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            ),
-                          )
-                        else if (isNearStart)
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppColors.danger.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: AppColors.danger.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                l10n.translate('cannotCancelNearStart'),
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.danger,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        if ((canCancel || isNearStart) && canExtend)
-                          const SizedBox(width: 8),
-                        if (canExtend)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _handleExtend(booking),
-                              icon: const Icon(
-                                Icons.more_time_rounded,
-                                size: 18,
-                              ),
-                              label: Text(l10n.translate('extendBooking')),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (isConfirmed)
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton.icon(
-                        onPressed: () => _showQRCode(booking, l10n),
-                        icon: const Icon(Icons.qr_code_rounded, size: 18),
-                        label: Text(l10n.translate('viewQRForCheckIn')),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
+    ));
 
     if (isHistory) {
       // Use ColorFiltered instead of Opacity to avoid expensive saveLayer.
@@ -609,7 +525,7 @@ class _MyBookingsPageState extends ConsumerState<MyBookingsPage> {
       createdAt: DateTime.now(),
     );
 
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (context) =>
             PaymentSuccessPage(booking: booking, payment: dummyPayment),

@@ -15,10 +15,13 @@ class VehicleManagementPage extends ConsumerWidget {
 
     // Lắng nghe lỗi và hiển thị SnackBar
     ref.listen<VehicleState>(vehicleProvider, (previous, next) {
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+      if (next.errorMessage != null &&
+          next.errorMessage != previous?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).translate(next.errorMessage!)),
+            content: Text(
+              AppLocalizations.of(context).translate(next.errorMessage!),
+            ),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
@@ -41,8 +44,8 @@ class VehicleManagementPage extends ConsumerWidget {
       body: vehicleState.isLoading && vehicleState.vehicles.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : vehicleState.vehicles.isEmpty
-              ? _buildEmptyState(context)
-              : _buildVehicleList(context, ref, vehicleState),
+          ? _buildEmptyState(context)
+          : _buildVehicleList(context, ref, vehicleState),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddVehicleDialog(context, ref),
         backgroundColor: const Color(0xFF6366F1),
@@ -95,7 +98,11 @@ class VehicleManagementPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildVehicleList(BuildContext context, WidgetRef ref, VehicleState state) {
+  Widget _buildVehicleList(
+    BuildContext context,
+    WidgetRef ref,
+    VehicleState state,
+  ) {
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: state.vehicles.length,
@@ -115,14 +122,20 @@ class VehicleManagementPage extends ConsumerWidget {
             ],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 12,
+            ),
             leading: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E293B).withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.directions_car_rounded, color: Color(0xFF1E293B)),
+              child: const Icon(
+                Icons.directions_car_rounded,
+                color: Color(0xFF1E293B),
+              ),
             ),
             title: Text(
               vehicle.licensePlate,
@@ -138,7 +151,10 @@ class VehicleManagementPage extends ConsumerWidget {
               ),
             ),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Color(0xFFEF4444),
+              ),
               onPressed: () => _confirmDelete(context, ref, vehicle.id),
             ),
           ),
@@ -183,23 +199,39 @@ class VehicleManagementPage extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   AppLocalizations.of(context).translate('addVehicleSub'),
-                  style: AppTextStyles.caption.copyWith(color: const Color(0xFF64748B)),
+                  style: AppTextStyles.caption.copyWith(
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _buildDialogField(
                   label: AppLocalizations.of(context).translate('licensePlate'),
-                  hint: AppLocalizations.of(context).translate('licensePlateExample'),
+                  hint: AppLocalizations.of(
+                    context,
+                  ).translate('licensePlateExample'),
                   controller: plateController,
                   icon: Icons.badge_rounded,
-                  validator: (val) => (val == null || val.isEmpty) ? AppLocalizations.of(context).translate('pleaseEnterLicensePlate') : null,
+                  validator: (val) => (val == null || val.isEmpty)
+                      ? AppLocalizations.of(
+                          context,
+                        ).translate('pleaseEnterLicensePlate')
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 _buildDialogField(
-                  label: AppLocalizations.of(context).translate('vehicleModelLabel'),
-                  hint: AppLocalizations.of(context).translate('vehicleModelExample'),
+                  label: AppLocalizations.of(
+                    context,
+                  ).translate('vehicleModelLabel'),
+                  hint: AppLocalizations.of(
+                    context,
+                  ).translate('vehicleModelExample'),
                   controller: modelController,
                   icon: Icons.category_rounded,
-                  validator: (val) => (val == null || val.isEmpty) ? AppLocalizations.of(context).translate('pleaseEnterVehicleModel') : null,
+                  validator: (val) => (val == null || val.isEmpty)
+                      ? AppLocalizations.of(
+                          context,
+                        ).translate('pleaseEnterVehicleModel')
+                      : null,
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -208,19 +240,30 @@ class VehicleManagementPage extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: () async {
                       if (formKey.currentState!.validate()) {
-                        final success = await ref.read(vehicleProvider.notifier).addVehicle(
+                        final success = await ref
+                            .read(vehicleProvider.notifier)
+                            .addVehicle(
                               licensePlate: plateController.text.trim(),
                               model: modelController.text.trim(),
                             );
                         if (context.mounted && success) {
                           Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Thêm biển số thành công'),
+                              backgroundColor: Color(0xFF10B981),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         }
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6366F1),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     child: Text(
@@ -249,9 +292,7 @@ class VehicleManagementPage extends ConsumerWidget {
       children: [
         Text(
           label,
-          style: AppTextStyles.label.copyWith(
-            color: const Color(0xFF1E293B),
-          ),
+          style: AppTextStyles.label.copyWith(color: const Color(0xFF1E293B)),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -278,19 +319,46 @@ class VehicleManagementPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(AppLocalizations.of(context).translate('deleteVehicleConfirmTitle'), style: AppTextStyles.subtitle1),
-        content: Text(AppLocalizations.of(context).translate('deleteVehicleConfirmSub')),
+        title: Text(
+          AppLocalizations.of(context).translate('deleteVehicleConfirmTitle'),
+          style: AppTextStyles.subtitle1,
+        ),
+        content: Text(
+          AppLocalizations.of(context).translate('deleteVehicleConfirmSub'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context).translate('cancel').toUpperCase(), style: AppTextStyles.label.copyWith(color: const Color(0xFF64748B))),
+            child: Text(
+              AppLocalizations.of(context).translate('cancel').toUpperCase(),
+              style: AppTextStyles.label.copyWith(
+                color: const Color(0xFF64748B),
+              ),
+            ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ref.read(vehicleProvider.notifier).deleteVehicle(id);
+              final success = await ref
+                  .read(vehicleProvider.notifier)
+                  .deleteVehicle(id);
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã xoá xe thành công'),
+                    backgroundColor: Color(0xFF10B981),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
-            child: Text(AppLocalizations.of(context).translate('delete').toUpperCase(), style: AppTextStyles.label.copyWith(color: const Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+            child: Text(
+              AppLocalizations.of(context).translate('delete').toUpperCase(),
+              style: AppTextStyles.label.copyWith(
+                color: const Color(0xFFEF4444),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

@@ -56,7 +56,9 @@ class AdminRemoteDataSource {
         if (responseData['success'] == true) {
           return UserModel.fromJson(responseData['data']);
         }
-        throw ServerException(message: responseData['message'] ?? 'Failed to create staff');
+        throw ServerException(
+          message: responseData['message'] ?? 'Failed to create staff',
+        );
       }
       throw ServerException(message: 'Failed to create staff');
     } on DioException catch (e) {
@@ -94,7 +96,9 @@ class AdminRemoteDataSource {
 
       if (response.statusCode != 201 && response.statusCode != 200) {
         final Map<String, dynamic> responseData = response.data;
-        throw ServerException(message: responseData['message'] ?? 'Failed to create parking lot');
+        throw ServerException(
+          message: responseData['message'] ?? 'Failed to create parking lot',
+        );
       }
     } on DioException catch (e) {
       throw ServerException(
@@ -126,8 +130,10 @@ class AdminRemoteDataSource {
         if (managerId != null) 'managerId': managerId,
         if (hasEvStation != null) 'hasEvStation': hasEvStation,
       };
-      
-      debugPrint('[AdminRemoteDataSource] PUT /api/parking-lots/$id data: $data');
+
+      debugPrint(
+        '[AdminRemoteDataSource] PUT /api/parking-lots/$id data: $data',
+      );
 
       final response = await dio.put(
         '${ApiEndpoints.parkingLots}/$id',
@@ -147,9 +153,7 @@ class AdminRemoteDataSource {
 
   Future<void> deleteParkingLot(int id) async {
     try {
-      final response = await dio.delete(
-        '${ApiEndpoints.parkingLots}/$id',
-      );
+      final response = await dio.delete('${ApiEndpoints.parkingLots}/$id');
 
       if (response.statusCode != 200) {
         throw ServerException(message: 'Failed to delete parking lot');
@@ -165,39 +169,45 @@ class AdminRemoteDataSource {
   Future<List<BookingModel>> getAllBookings() async {
     try {
       final response = await dio.get(ApiEndpoints.allBookings);
-      debugPrint('DIO: GET ${ApiEndpoints.allBookings} - Response: ${response.data}');
-      
+      debugPrint(
+        'DIO: GET ${ApiEndpoints.allBookings} - Response: ${response.data}',
+      );
+
       if (response.statusCode == 200) {
         final responseData = response.data;
-        
+
         List<dynamic>? rawList;
-        
+
         // Case 1: Wrapped in { "success": true, "data": [...] }
         if (responseData is Map<String, dynamic>) {
-          if (responseData['success'] == true || responseData.containsKey('data')) {
+          if (responseData['success'] == true ||
+              responseData.containsKey('data')) {
             final data = responseData['data'];
             if (data is List) {
               rawList = data;
             }
           }
         }
-        
+
         // Case 2: List returned directly
         if (responseData is List) {
           rawList = responseData;
         }
-        
+
         if (rawList != null) {
-          return rawList.map((json) {
-            try {
-              return BookingModel.fromJson(json);
-            } catch (e) {
-              debugPrint('Error parsing booking: $e');
-              return null;
-            }
-          }).whereType<BookingModel>().toList();
+          return rawList
+              .map((json) {
+                try {
+                  return BookingModel.fromJson(json);
+                } catch (e) {
+                  debugPrint('Error parsing booking: $e');
+                  return null;
+                }
+              })
+              .whereType<BookingModel>()
+              .toList();
         }
-        
+
         return [];
       }
       throw ServerException(message: 'Failed to load bookings');
@@ -213,8 +223,18 @@ class AdminRemoteDataSource {
     try {
       await dio.patch(ApiEndpoints.checkinBooking(id));
     } on DioException catch (e) {
+      String errMsg = 'Failed to check-in';
+      if (e.response != null && e.response!.data != null) {
+        if (e.response!.data is Map) {
+          errMsg = e.response!.data['message'] ?? e.response!.data.toString();
+        } else {
+          errMsg = e.response!.data.toString();
+        }
+      } else {
+        errMsg = e.message ?? errMsg;
+      }
       throw ServerException(
-        message: e.response?.data?['message'] ?? 'Failed to check-in',
+        message: errMsg,
         statusCode: e.response?.statusCode,
       );
     }
@@ -224,8 +244,18 @@ class AdminRemoteDataSource {
     try {
       await dio.patch(ApiEndpoints.completeBooking(id));
     } on DioException catch (e) {
+      String errMsg = 'Failed to complete booking';
+      if (e.response != null && e.response!.data != null) {
+        if (e.response!.data is Map) {
+          errMsg = e.response!.data['message'] ?? e.response!.data.toString();
+        } else {
+          errMsg = e.response!.data.toString();
+        }
+      } else {
+        errMsg = e.message ?? errMsg;
+      }
       throw ServerException(
-        message: e.response?.data?['message'] ?? 'Failed to complete booking',
+        message: errMsg,
         statusCode: e.response?.statusCode,
       );
     }

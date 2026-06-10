@@ -123,8 +123,11 @@ class BookingManagementNotifier extends StateNotifier<BookingManagementState> {
         final isAdmin = authState.user?.isAdmin ?? false;
         
         List<Booking> filteredBookings = bookings;
-        if (!isAdmin) {
-          final managerLotNames = ref.read(parkingLotsProvider).lots.map((l) => l.name).toSet();
+        if (!isAdmin && authState.user != null) {
+          final managerLotNames = ref.read(parkingLotsProvider).lots
+              .where((l) => l.managerId == authState.user!.id)
+              .map((l) => l.name)
+              .toSet();
           filteredBookings = bookings.where((b) => managerLotNames.contains(b.lotName)).toList();
         }
 

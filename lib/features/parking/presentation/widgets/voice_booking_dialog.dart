@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -204,7 +205,7 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
                         ),
 
                       // AI Response
-                      if (voiceState.aiMessage.isNotEmpty)
+                      if (voiceState.status == VoiceBookingStateStatus.speaking)
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Container(
@@ -233,36 +234,28 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 16,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(
+                                      alpha: 0.3,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(4),
+                                      topRight: Radius.circular(24),
+                                      bottomLeft: Radius.circular(24),
+                                      bottomRight: Radius.circular(24),
+                                    ),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(
                                         alpha: 0.3,
-                                      ),
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(4),
-                                        topRight: Radius.circular(24),
-                                        bottomLeft: Radius.circular(24),
-                                        bottomRight: Radius.circular(24),
-                                      ),
-                                      border: Border.all(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      voiceState.aiMessage,
-                                      style: AppTextStyles.body1.copyWith(
-                                        color: Colors.white,
-                                        height: 1.5,
                                       ),
                                     ),
                                   ),
+                                  child: const JumpingDots(),
                                 ),
                               ],
                             ),
@@ -307,7 +300,7 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
                       if (voiceState.step == VoiceBookingStep.selectingLot &&
                           voiceState.suggestedLots.isNotEmpty)
                         SizedBox(
-                          height: 200,
+                          height: 240,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: voiceState.suggestedLots.length,
@@ -320,7 +313,7 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
                                     .read(voiceBookingProvider.notifier)
                                     .selectLotManual(index),
                                 child: Container(
-                                  width: 180,
+                                  width: 200,
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.05),
@@ -363,6 +356,32 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.attach_money, color: Colors.greenAccent, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${lot.pricePerHour.toInt()} đ/h",
+                                            style: AppTextStyles.body2.copyWith(color: Colors.white70),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.location_on, color: Colors.redAccent, size: 16),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              lot.address,
+                                              style: AppTextStyles.caption.copyWith(color: Colors.white70),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const Spacer(),
                                       Container(
@@ -603,5 +622,56 @@ class _VoiceBookingPageState extends ConsumerState<VoiceBookingPage>
       case VoiceBookingStateStatus.error:
         return 'Có lỗi xảy ra, vui lòng thử lại';
     }
+  }
+}
+
+class JumpingDots extends StatefulWidget {
+  const JumpingDots({super.key});
+
+  @override
+  State<JumpingDots> createState() => _JumpingDotsState();
+}
+
+class _JumpingDotsState extends State<JumpingDots> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            final double value = (_controller.value * 2 * math.pi) - (index * 1.0);
+            final double offset = (math.sin(value) + 1) * 3;
+            return Transform.translate(
+              offset: Offset(0, -offset),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 }

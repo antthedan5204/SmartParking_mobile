@@ -7,6 +7,7 @@ import '../providers/parking_provider.dart';
 import 'parking_card.dart';
 import 'parking_lot_details_sheet.dart';
 import '../pages/select_slot_page.dart';
+import '../../../../core/utils/map_utils.dart';
 
 class ParkingListView extends ConsumerStatefulWidget {
   const ParkingListView({super.key});
@@ -90,7 +91,9 @@ class _ParkingListViewState extends ConsumerState<ParkingListView> {
             userPosition: userPosition,
             onTap: () => _showDetails(context, lot),
             onNavigate: () {
-              // TODO: Open map navigation
+              if (lot.latitude != null && lot.longitude != null) {
+                MapUtils.openExternalMap(lot.latitude!, lot.longitude!);
+              }
             },
           );
         },
@@ -107,17 +110,15 @@ class _ParkingListViewState extends ConsumerState<ParkingListView> {
       builder: (context) => ParkingLotDetailsSheet(
         lot: lot,
         onNavigate: () {
-          // TODO: Implement navigation
           Navigator.pop(context);
+          if (lot.latitude != null && lot.longitude != null) {
+            MapUtils.openExternalMap(lot.latitude!, lot.longitude!);
+          }
         },
         onPay: () {
           Navigator.pop(context);
           Navigator.of(context, rootNavigator: true).push(
-            MaterialPageRoute(
-              builder: (context) => SelectSlotPage(
-                lot: lot,
-              ),
-            ),
+            MaterialPageRoute(builder: (context) => SelectSlotPage(lot: lot)),
           );
         },
       ),

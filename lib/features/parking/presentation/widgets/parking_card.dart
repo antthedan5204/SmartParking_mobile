@@ -209,15 +209,16 @@ class ParkingCard extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
+    return Material(
+      color: color,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }

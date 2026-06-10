@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'core/services/realtime_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/parking/presentation/providers/booking_provider.dart';
 import 'features/parking/presentation/pages/notifications_page.dart';
 
 class SmartParkingApp extends ConsumerStatefulWidget {
@@ -18,10 +19,12 @@ class SmartParkingApp extends ConsumerStatefulWidget {
   ConsumerState<SmartParkingApp> createState() => _SmartParkingAppState();
 }
 
-class _SmartParkingAppState extends ConsumerState<SmartParkingApp> {
+class _SmartParkingAppState extends ConsumerState<SmartParkingApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Eagerly initialize notifications provider so it catches all SignalR events
       ref.read(notificationsProvider);
@@ -32,13 +35,31 @@ class _SmartParkingAppState extends ConsumerState<SmartParkingApp> {
   Future<void> _syncRealtimeConnection(AuthState authState) async {
     if (authState.status == AuthStatus.authenticated) {
       final storage = ref.read(secureStorageProvider);
-      final token = authState.user?.token ??
+      final token =
+          authState.user?.token ??
           await storage.read(key: AppConstants.tokenKey);
       if (token != null && token.isNotEmpty) {
         await RealtimeNotificationService().connect(token);
       }
     } else {
       await RealtimeNotificationService().disconnect();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reconnect SignalR when app comes back to foreground
+      final authState = ref.read(authProvider);
+      unawaited(_syncRealtimeConnection(authState));
+      // Refresh current bookings
+      ref.read(bookingProvider.notifier).loadUserBookings();
     }
   }
 
@@ -56,10 +77,7 @@ class _SmartParkingAppState extends ConsumerState<SmartParkingApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       locale: locale,
-      supportedLocales: const [
-        Locale('vi'),
-        Locale('en'),
-      ],
+      supportedLocales: const [Locale('vi'), Locale('en')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

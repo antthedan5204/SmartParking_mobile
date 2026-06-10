@@ -22,6 +22,8 @@ class Booking extends Equatable {
   final String? vehiclePlateNumber;
   final double penaltyFee;
   final DateTime? actualCheckoutTime;
+  final double extensionFee;
+  final int? extensionTime; // in minutes
 
   const Booking({
     required this.id,
@@ -37,10 +39,12 @@ class Booking extends Equatable {
     this.vehiclePlateNumber,
     this.penaltyFee = 0.0,
     this.actualCheckoutTime,
+    this.extensionFee = 0.0,
+    this.extensionTime,
   });
 
   @override
   List<Object?> get props => [
-    id, userId, slotId, vehicleId, startTime, endTime, status, totalPrice, lotName, slotNumber, vehiclePlateNumber, penaltyFee, actualCheckoutTime
+    id, userId, slotId, vehicleId, startTime, endTime, status, totalPrice, lotName, slotNumber, vehiclePlateNumber, penaltyFee, actualCheckoutTime, extensionFee, extensionTime
   ];
 }
