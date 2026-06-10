@@ -196,19 +196,9 @@ class BookingNotifier extends StateNotifier<BookingState> {
         return false;
       },
       (updatedBooking) async {
-        // 2. Create Payment for extra amount
-        if (extraAmount > 0) {
-          final paymentResult = await repository.createPayment(
-             bookingId: bookingId,
-             amount: extraAmount,
-             paymentMethod: method.index,
-             transactionId: 'EXTEND_${DateTime.now().millisecondsSinceEpoch}',
-          );
-          
-          if (paymentResult.isLeft()) {
-             // We still update local state but warn about payment? 
-          }
-        }
+        // Note: We do NOT call createPayment here because the backend has a 1-to-1 
+        // unique constraint on IX_payments_booking_id. 
+        // The backend's ExtendBooking endpoint automatically increments the TotalPrice.
         
         state = state.copyWith(isLoading: false);
         // Slot occupancy can change around extension boundaries, force refresh.
