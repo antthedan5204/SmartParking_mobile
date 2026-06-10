@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class VoiceBookingService {
-  static const String _openAiKey = '';
+  static String get _openAiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
   static Future<Map<String, dynamic>?> processConversation(
     List<Map<String, dynamic>> chatHistory,
   ) async {
